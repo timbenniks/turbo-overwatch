@@ -1,0 +1,58 @@
+import Image from 'next/image'
+import { getHeroPortrait } from '@/lib/hero-assets'
+import { GameModeTabs } from '@/components/game-mode-tabs'
+import type { Hero, Gamemode } from '@/types/overfast'
+
+export function HeroBanner({
+  heroKey,
+  hero,
+  gamemode,
+}: {
+  heroKey: string
+  hero: Hero | null
+  gamemode: Gamemode
+}) {
+  const portrait = getHeroPortrait(heroKey)
+  const displayName = hero?.name ?? heroKey.replace(/-/g, ' ')
+
+  return (
+    <div className="relative w-full h-[70vh] min-h-130 overflow-hidden">
+      {portrait && (
+        <Image
+          src={portrait}
+          alt={displayName}
+          fill
+          priority
+          sizes="100vw"
+          quality={100}
+          className="object-cover object-[70%_15%] md:object-[center_15%]"
+        />
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-surface-canvas via-surface-canvas/70 to-transparent" />
+
+      <div className="relative h-full flex flex-col justify-end px-6 md:px-16 pb-12 md:pb-16 text-white max-w-400 mx-auto">
+        <div className="text-[12px] md:text-[14px] uppercase tracking-[0.25em] font-bold opacity-90 mb-4">
+          {hero?.role ?? '—'}
+          {hero?.subrole && ` · ${hero.subrole}`}
+        </div>
+        <h1 className="text-[72px] md:text-[180px] leading-[0.85] font-black uppercase tracking-tighter">
+          {displayName}
+        </h1>
+        {hero?.description && (
+          <p className="text-[14px] md:text-[16px] mt-6 opacity-90 leading-relaxed line-clamp-3 max-w-2xl font-medium">
+            {hero.description}
+          </p>
+        )}
+      </div>
+
+      <div className="absolute top-6 right-6 md:top-8 md:right-8">
+        <GameModeTabs
+          current={gamemode}
+          basePath={`/hero/${heroKey}`}
+          variant="dark"
+          size="sm"
+        />
+      </div>
+    </div>
+  )
+}

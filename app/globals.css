@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces — dark */
+  --color-surface-canvas: #07070a;
+  --color-surface-card: #131319;
+  --color-surface-card-active: #1c1c24;
+  --color-surface-elevated: #25252e;
+
+  /* Text */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #c4c4cc;
+  --color-text-tertiary: #8a8a94;
+
+  /* Borders */
+  --color-border-default: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.2);
+
+  /* Semantic — punchy */
+  --color-semantic-good: #a3e635;
+  --color-semantic-mid: #fbbf24;
+  --color-semantic-warn: #fb7185;
+
+  /* Roles — bold */
+  --color-role-tank: #fb923c;
+  --color-role-damage: #fb7185;
+  --color-role-support: #a3e635;
+
+  /* Fonts — Roboto everywhere */
+  --font-sans: var(--font-roboto), system-ui, sans-serif;
+  --font-serif: var(--font-roboto), system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-surface-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+  }
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
