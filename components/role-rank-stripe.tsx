@@ -50,7 +50,7 @@ export function RoleRankStripe({
         return (
           <div
             key={role}
-            className={`bg-surface-card border border-border-default ${ROLE_BORDER[role]} border-l-4 rounded-2xl p-6 flex flex-col`}
+            className={`bg-surface-card border border-border-default ${ROLE_BORDER[role]} border-l-4 rounded-2xl p-4 md:p-6 flex flex-col`}
           >
             <div className="flex items-center justify-between mb-5">
               <div className={`text-[13px] uppercase tracking-[0.2em] font-black ${ROLE_TEXT[role]}`}>
@@ -69,7 +69,7 @@ export function RoleRankStripe({
                   Win rate
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[32px] md:text-[40px] font-black leading-none tracking-tight">
+                  <span className="text-[26px] md:text-[40px] font-black leading-none tracking-tight">
                     {formatPercent(roleStats.winrate)}
                   </span>
                   <span className="text-[11px] text-text-tertiary uppercase tracking-widest font-bold">
@@ -81,7 +81,7 @@ export function RoleRankStripe({
                 <div className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-bold mb-1">
                   KDA
                 </div>
-                <div className="text-[32px] md:text-[40px] font-black leading-none tracking-tight">
+                <div className="text-[26px] md:text-[40px] font-black leading-none tracking-tight">
                   {roleStats.kda.toFixed(2)}
                 </div>
               </div>

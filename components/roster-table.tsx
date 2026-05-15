@@ -63,7 +63,7 @@ export function RosterTable({
       </div>
 
       <div className="bg-surface-card border border-border-default rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-[48px_1fr_80px_80px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-4 px-5 py-3 text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold border-b border-border-default">
+        <div className="grid grid-cols-[40px_1fr_70px_70px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-3 md:gap-4 px-3 md:px-5 py-3 text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold border-b border-border-default">
           <span />
           <span>Hero</span>
           <span className="text-right">Time</span>
@@ -87,30 +87,30 @@ export function RosterTable({
               <Link
                 href={`/hero/${key}`}
                 key={key}
-                className="grid grid-cols-[48px_1fr_80px_80px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-4 px-5 py-4 items-center border-b border-border-default last:border-b-0 hover:bg-surface-card-active transition-colors"
+                className="grid grid-cols-[40px_1fr_70px_70px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-3 md:gap-4 px-3 md:px-5 py-4 items-center border-b border-border-default last:border-b-0 hover:bg-surface-card-active transition-colors"
                 style={{ borderLeft: `4px solid ${theme.primary}` }}
               >
-                <div className="relative w-11 h-11 rounded-full overflow-hidden bg-border-default">
+                <div className="relative w-9 h-9 md:w-11 md:h-11 rounded-full overflow-hidden bg-border-default">
                   {portrait && (
                     <Image src={portrait} alt="" fill sizes="44px" quality={100} className="object-cover" />
                   )}
                 </div>
-                <div>
-                  <div className="uppercase text-[16px] md:text-[18px] font-black tracking-tight leading-none">
+                <div className="min-w-0">
+                  <div className="uppercase text-[13px] md:text-[18px] font-black tracking-tight leading-none truncate">
                     {name}
                   </div>
                   {pill && (
-                    <div className="text-[10px] text-semantic-good mt-1.5 uppercase tracking-[0.2em] font-bold">
+                    <div className="text-[9px] md:text-[10px] text-semantic-good mt-1.5 uppercase tracking-[0.2em] font-bold">
                       {pill}
                     </div>
                   )}
                 </div>
-                <div className="text-right font-black text-[18px]">
+                <div className="text-right font-black text-[14px] md:text-[18px]">
                   {time.value}
-                  <span className="text-text-tertiary text-[12px] ml-0.5 font-bold">{time.unit}</span>
+                  <span className="text-text-tertiary text-[11px] md:text-[12px] ml-0.5 font-bold">{time.unit}</span>
                 </div>
                 <div
-                  className={`text-right font-black text-[18px] ${
+                  className={`text-right font-black text-[14px] md:text-[18px] ${
                     heroStats.winrate >= 50 ? 'text-semantic-good' : 'text-semantic-warn'
                   }`}
                 >

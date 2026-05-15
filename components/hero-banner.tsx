@@ -30,12 +30,12 @@ export function HeroBanner({
       )}
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-surface-canvas via-surface-canvas/70 to-transparent" />
 
-      <div className="relative h-full flex flex-col justify-end px-6 md:px-16 pb-12 md:pb-16 text-white max-w-400 mx-auto">
+      <div className="relative h-full flex flex-col justify-end px-4 md:px-16 pb-10 md:pb-16 text-white max-w-400 mx-auto">
         <div className="text-[12px] md:text-[14px] uppercase tracking-[0.25em] font-bold opacity-90 mb-4">
           {hero?.role ?? '—'}
           {hero?.subrole && ` · ${hero.subrole}`}
         </div>
-        <h1 className="text-[72px] md:text-[180px] leading-[0.85] font-black uppercase tracking-tighter">
+        <h1 className="text-[52px] md:text-[180px] leading-[0.85] font-black uppercase tracking-tighter">
           {displayName}
         </h1>
         {hero?.description && (

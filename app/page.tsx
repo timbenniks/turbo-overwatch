@@ -52,7 +52,7 @@ async function HomeContent() {
         heroNames={heroNames}
       />
 
-      <div className="px-6 md:px-16 space-y-16 mt-12 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 space-y-10 md:space-y-16 mt-8 md:mt-12 max-w-400 mx-auto">
         <section>
           <SectionHeader icon={<Shield size={22} />}>Role ranks</SectionHeader>
           <RoleRankStripe summary={summary} stats={stats} />
@@ -100,7 +100,7 @@ function HomeSkeleton() {
   return (
     <>
       <div className="w-full h-[85vh] min-h-160 bg-surface-card animate-pulse" />
-      <div className="px-6 md:px-16 mt-8 space-y-16 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 mt-8 space-y-10 md:space-y-16 max-w-400 mx-auto">
         <SkeletonGrid cols={3} h={120} />
         <SkeletonGrid cols={3} h={320} />
         <SkeletonGrid cols={4} h={120} />

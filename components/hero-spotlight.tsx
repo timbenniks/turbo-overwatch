@@ -46,7 +46,7 @@ export function HeroSpotlight({
       <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/70 via-black/30 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-surface-canvas via-surface-canvas/70 to-transparent" />
 
-      <div className="relative z-10 px-6 md:px-16 pt-6 md:pt-8 flex items-center gap-4">
+      <div className="relative z-10 px-4 md:px-16 pt-6 md:pt-8 flex items-center gap-3 md:gap-4">
         <Image
           src={summary.avatar}
           alt={`${username} avatar`}
@@ -57,7 +57,7 @@ export function HeroSpotlight({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <h2 className="text-[22px] md:text-[28px] leading-none font-black uppercase tracking-tight text-white truncate">
+            <h2 className="text-[18px] md:text-[28px] leading-none font-black uppercase tracking-tight text-white truncate">
               {username}
             </h2>
             {tag && (
@@ -81,7 +81,7 @@ export function HeroSpotlight({
         )}
       </div>
 
-      <div className="relative h-full flex flex-col justify-end px-6 md:px-16 pb-16 md:pb-24 -mt-22 md:-mt-28">
+      <div className="relative h-full flex flex-col justify-end px-4 md:px-16 pb-12 md:pb-24 -mt-22 md:-mt-28">
         <div className="flex items-center gap-3 mb-6">
           <span
             className="text-[11px] md:text-[12px] uppercase tracking-[0.25em] font-bold px-3 py-1.5 rounded-full"
@@ -96,7 +96,7 @@ export function HeroSpotlight({
           )}
         </div>
 
-        <h1 className="text-[64px] md:text-[160px] leading-[0.85] font-black uppercase tracking-tighter text-white">
+        <h1 className="text-[48px] md:text-[160px] leading-[0.85] font-black uppercase tracking-tighter text-white">
           {name}
         </h1>
 
@@ -124,9 +124,9 @@ function Stat({ label, value, unit }: { label: string; value: string; unit?: str
       <div className="text-[10px] md:text-[11px] uppercase tracking-[0.25em] text-white/70 font-bold mb-1">
         {label}
       </div>
-      <div className="text-[40px] md:text-[56px] font-black leading-none text-white">
+      <div className="text-[28px] md:text-[56px] font-black leading-none text-white">
         {value}
-        {unit && <span className="text-white/60 text-[24px] md:text-[32px] ml-1">{unit}</span>}
+        {unit && <span className="text-white/60 text-[18px] md:text-[32px] ml-1">{unit}</span>}
       </div>
     </div>
   )

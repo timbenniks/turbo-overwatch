@@ -32,11 +32,11 @@ export async function HeroSpecificStats({
 
       <div className="bg-surface-card border border-border-default rounded-2xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border-default">
         {primary.map((s) => (
-          <div key={s.key} className="p-5">
+          <div key={s.key} className="p-4 md:p-5">
             <div className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-bold leading-tight min-h-7">
               {s.label}
             </div>
-            <div className="text-[28px] md:text-[32px] font-black mt-2 leading-none tracking-tight">
+            <div className="text-[22px] md:text-[32px] font-black mt-2 leading-none tracking-tight">
               {formatValue(s.key, s.value)}
             </div>
           </div>

@@ -31,7 +31,7 @@ export function HeroIdentityCard({ hero }: { hero: Hero }) {
             </div>
           )}
 
-          <div className="p-6 md:p-8 flex flex-col gap-6">
+          <div className="p-4 md:p-8 flex flex-col gap-6">
             <div>
               <div className={`text-[12px] uppercase tracking-[0.25em] font-black ${ROLE_COLOR[hero.role]}`}>
                 {hero.role}
@@ -52,7 +52,7 @@ export function HeroIdentityCard({ hero }: { hero: Hero }) {
                   <Heart size={14} />
                   <span>Hitpoints</span>
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-2 md:gap-3">
                   <HpCell label="Health" value={hp.health} color="#a3e635" icon={<Heart size={12} />} />
                   <HpCell label="Armor" value={hp.armor} color="#fb923c" icon={<Shield size={12} />} />
                   <HpCell label="Shields" value={hp.shields} color="#67e8f9" icon={<Shield size={12} />} />
@@ -85,7 +85,7 @@ function HpCell({
         <span>{label}</span>
       </div>
       <div
-        className="text-[24px] md:text-[28px] font-black leading-none tracking-tight"
+        className="text-[18px] md:text-[28px] font-black leading-none tracking-tight"
         style={{ color }}
       >
         {value}

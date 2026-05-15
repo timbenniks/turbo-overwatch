@@ -53,11 +53,11 @@ function Cell({
   pct: PercentileResult
 }) {
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
         {label}
       </div>
-      <div className="text-[40px] md:text-[44px] font-black mt-2 leading-none tracking-tight">{value}</div>
+      <div className="text-[28px] md:text-[44px] font-black mt-2 leading-none tracking-tight">{value}</div>
       <div className="mt-3">
         <PercentileCallout result={pct} />
       </div>

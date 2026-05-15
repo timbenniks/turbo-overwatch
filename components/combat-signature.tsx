@@ -64,12 +64,12 @@ function Cell({
   note: string | null
 }) {
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
         <span>{icon}</span>
         <span>{label}</span>
       </div>
-      <div className="text-[36px] md:text-[44px] font-black mt-2 leading-none tracking-tight">{value}</div>
+      <div className="text-[26px] md:text-[44px] font-black mt-2 leading-none tracking-tight">{value}</div>
       {note && (
         <div className="text-[11px] text-text-secondary mt-3 uppercase tracking-widest font-bold">{note}</div>
       )}

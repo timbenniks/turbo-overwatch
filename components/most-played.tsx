@@ -67,10 +67,10 @@ function HeroCardLarge({
       </span>
 
       <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 text-white">
-        <h3 className="text-[28px] md:text-[36px] font-black uppercase leading-none tracking-tight">
+        <h3 className="text-[20px] md:text-[36px] font-black uppercase leading-none tracking-tight">
           {name}
         </h3>
-        <div className="text-[13px] md:text-[14px] mt-3 flex gap-5 font-bold uppercase tracking-widest">
+        <div className="text-[11px] md:text-[14px] mt-3 flex gap-4 md:gap-5 font-bold uppercase tracking-widest">
           <span>
             {time.value}
             <span className="text-white/60 ml-0.5">{time.unit}</span>

@@ -131,11 +131,11 @@ function BigCell({
   callout?: React.ReactNode
 }) {
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
         {label}
       </div>
-      <div className="text-[36px] md:text-[44px] font-black mt-2 leading-none tracking-tight">
+      <div className="text-[26px] md:text-[44px] font-black mt-2 leading-none tracking-tight">
         {value}
       </div>
       {callout && <div className="mt-3">{callout}</div>}
@@ -145,11 +145,11 @@ function BigCell({
 
 function SmallCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-5">
+    <div className="p-4 md:p-5">
       <div className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
         {label}
       </div>
-      <div className="text-[24px] md:text-[28px] font-black mt-1.5 leading-none tracking-tight">
+      <div className="text-[20px] md:text-[28px] font-black mt-1.5 leading-none tracking-tight">
         {value}
       </div>
     </div>

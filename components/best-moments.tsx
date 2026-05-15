@@ -46,7 +46,7 @@ export async function BestMoments({
                 Personal best
               </span>
             )}
-            <div className="text-[40px] md:text-[52px] font-black leading-none tracking-tight">
+            <div className="text-[32px] md:text-[52px] font-black leading-none tracking-tight">
               {formatStatValue(c.stat.value)}
             </div>
             <div className="text-[11px] uppercase tracking-[0.2em] text-text-tertiary mt-4 font-bold">

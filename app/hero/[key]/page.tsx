@@ -72,7 +72,7 @@ async function HeroContent({
         <HeroBanner heroKey={key} hero={hero} gamemode={gamemode} />
       </div>
 
-      <div className="px-6 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
         {heroStats ? (
           <HeadlineStatTrio
             heroKey={key}
@@ -84,7 +84,7 @@ async function HeroContent({
         )}
       </div>
 
-      <div className="px-6 md:px-16 mt-16 space-y-16 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 mt-10 md:mt-16 space-y-10 md:space-y-16 max-w-400 mx-auto">
         {hero && <HeroIdentityCard hero={hero} />}
 
         {hero && hero.abilities && hero.abilities.length > 0 && (
@@ -127,7 +127,7 @@ async function HeroContent({
 function NeverPlayedNotice({ heroName }: { heroName: string }) {
   return (
     <div className="bg-surface-card border border-border-default rounded-2xl p-8 text-center">
-      <p className="text-[24px] md:text-[28px] uppercase font-black tracking-tight">
+      <p className="text-[18px] md:text-[28px] uppercase font-black tracking-tight">
         You haven&apos;t played {heroName} yet.
       </p>
       <p className="text-text-secondary text-[13px] mt-3 uppercase tracking-widest font-bold">
@@ -141,7 +141,7 @@ function HeroSkeleton() {
   return (
     <>
       <div className="w-full h-[70vh] min-h-130 bg-surface-card animate-pulse" />
-      <div className="px-6 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
@@ -151,7 +151,7 @@ function HeroSkeleton() {
           ))}
         </div>
       </div>
-      <div className="px-6 md:px-16 mt-16 space-y-16 max-w-400 mx-auto">
+      <div className="px-4 md:px-16 mt-16 space-y-16 max-w-400 mx-auto">
         <div className="h-32 bg-surface-card border border-border-default rounded-2xl animate-pulse" />
         <div className="h-96 bg-surface-card border border-border-default rounded-2xl animate-pulse" />
       </div>

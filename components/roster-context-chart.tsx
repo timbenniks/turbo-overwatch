@@ -39,7 +39,7 @@ export function RosterContextChart({
 
   return (
     <div>
-      <div className="bg-surface-card border border-border-default rounded-2xl p-6 space-y-4">
+      <div className="bg-surface-card border border-border-default rounded-2xl p-4 md:p-6 space-y-3 md:space-y-4">
         {display.map(([key, s]) => {
           const pct = (s.time_played / maxTime) * 100
           const isCurrent = key === heroKey
@@ -53,9 +53,9 @@ export function RosterContextChart({
                   YOU
                 </span>
               )}
-              <div className="flex items-center gap-4 text-[14px]">
-                <span className="w-32 uppercase text-text-secondary truncate font-bold tracking-tight">{name}</span>
-                <div className="flex-1 h-7 bg-surface-card-active rounded-md overflow-hidden">
+              <div className="flex items-center gap-2 md:gap-4 text-[12px] md:text-[14px]">
+                <span className="w-20 md:w-32 uppercase text-text-secondary truncate font-bold tracking-tight">{name}</span>
+                <div className="flex-1 h-5 md:h-7 bg-surface-card-active rounded-md overflow-hidden">
                   <div
                     className="h-full"
                     style={{
@@ -64,9 +64,9 @@ export function RosterContextChart({
                     }}
                   />
                 </div>
-                <span className="w-20 text-right font-black text-[16px]">
+                <span className="w-14 md:w-20 text-right font-black text-[13px] md:text-[16px]">
                   {time.value}
-                  <span className="text-text-tertiary text-[12px] ml-0.5">{time.unit}</span>
+                  <span className="text-text-tertiary text-[11px] md:text-[12px] ml-0.5">{time.unit}</span>
                 </span>
               </div>
             </div>
