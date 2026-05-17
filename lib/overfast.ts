@@ -30,13 +30,28 @@ export function normalisePlayerId(id: string): string {
   return id.replace('#', '-')
 }
 
+const PLAYER_DATA_LIFE = { stale: 60, revalidate: 3600, expire: 86400 }
+
+async function fetchWithRetry(url: string, attempts = 3): Promise<Response> {
+  let last: Response | null = null
+  for (let i = 0; i < attempts; i++) {
+    const res = await fetch(url)
+    if (res.ok || res.status === 404 || res.status === 403) return res
+    last = res
+    if (res.status !== 429 && res.status < 500) return res
+    const delay = 400 * Math.pow(2, i) + Math.random() * 200
+    await new Promise((r) => setTimeout(r, delay))
+  }
+  return last!
+}
+
 export async function getPlayerSummary(playerId: string): Promise<PlayerSummary | null> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(PLAYER_DATA_LIFE)
   cacheTag(`player-${playerId}`, 'player-summary')
 
   const id = normalisePlayerId(playerId)
-  const res = await fetch(`${BASE_URL}/players/${id}/summary`)
+  const res = await fetchWithRetry(`${BASE_URL}/players/${id}/summary`)
 
   if (res.status === 404) return null
   if (res.status === 403) throw new PrivateProfileError(id)
@@ -49,7 +64,7 @@ export async function getPlayerStatsSummary(
   opts: { gamemode?: Gamemode; platform?: Platform } = {}
 ): Promise<PlayerStatsSummary | null> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(PLAYER_DATA_LIFE)
   cacheTag(`player-${playerId}`, 'player-stats')
 
   const id = normalisePlayerId(playerId)
@@ -59,7 +74,7 @@ export async function getPlayerStatsSummary(
 
   const qs = params.toString()
   const url = `${BASE_URL}/players/${id}/stats/summary${qs ? `?${qs}` : ''}`
-  const res = await fetch(url)
+  const res = await fetchWithRetry(url)
   if (res.status === 404) return null
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
@@ -70,7 +85,7 @@ export async function getHero(key: string): Promise<Hero | null> {
   cacheLife('days')
   cacheTag(`hero-${key}`, 'heroes')
 
-  const res = await fetch(`${BASE_URL}/heroes/${key}`)
+  const res = await fetchWithRetry(`${BASE_URL}/heroes/${key}`)
   if (res.status === 404) return null
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
@@ -81,7 +96,7 @@ export async function getHeroList(): Promise<HeroListItem[]> {
   cacheLife('days')
   cacheTag('hero-list', 'heroes')
 
-  const res = await fetch(`${BASE_URL}/heroes`)
+  const res = await fetchWithRetry(`${BASE_URL}/heroes`)
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
 }
@@ -107,7 +122,7 @@ export async function getPlayerStatsDeep(
   opts: { gamemode?: Gamemode; platform?: Platform; hero?: string } = {}
 ): Promise<PlayerStatsDeep | null> {
   'use cache'
-  cacheLife('minutes')
+  cacheLife(PLAYER_DATA_LIFE)
   cacheTag(`player-${playerId}`, 'player-stats-deep')
 
   const id = normalisePlayerId(playerId)
@@ -116,7 +131,7 @@ export async function getPlayerStatsDeep(
   if (opts.platform) params.set('platform', opts.platform)
   if (opts.hero) params.set('hero', opts.hero)
 
-  const res = await fetch(`${BASE_URL}/players/${id}/stats?${params}`)
+  const res = await fetchWithRetry(`${BASE_URL}/players/${id}/stats?${params}`)
   if (res.status === 404) return null
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
@@ -188,7 +203,7 @@ export async function getGlobalHeroStats(
   params.set('gamemode', opts.gamemode ?? 'quickplay')
   params.set('region', opts.region ?? 'europe')
 
-  const res = await fetch(`${BASE_URL}/heroes/stats?${params}`)
+  const res = await fetchWithRetry(`${BASE_URL}/heroes/stats?${params}`)
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
 }
