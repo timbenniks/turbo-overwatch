@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { getPlayerSummary } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { ModeToggle } from '@/components/mode-toggle'
+import { HeaderShell } from '@/components/header-shell'
 
 export async function SiteHeader() {
   const summary = await getPlayerSummary(PLAYER_ID)
   const [username, tag] = summary?.username.split('#') ?? [null, null]
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-surface-canvas/80 backdrop-blur-md border-b border-border-default">
+    <HeaderShell>
       <div className="max-w-400 mx-auto px-4 md:px-16 h-14 md:h-16 flex items-center justify-between gap-6">
         <Link
           href="/"
@@ -52,6 +53,6 @@ export async function SiteHeader() {
           </Suspense>
         </div>
       </div>
-    </header>
+    </HeaderShell>
   )
 }

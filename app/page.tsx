@@ -17,6 +17,7 @@ import { RosterTable } from '@/components/roster-table'
 import { SectionHeader } from '@/components/section-header'
 import { CareerDetailSkeleton } from '@/components/skeletons'
 import { Shield, Star, Target, ListTree } from '@/components/icons'
+import { Reveal } from '@/components/reveal'
 import type { Role } from '@/types/overfast'
 
 export default function HomePage({
@@ -70,7 +71,7 @@ async function HomeContent({
       />
 
       <div className="px-4 md:px-16 space-y-10 md:space-y-16 mt-8 md:mt-12 max-w-400 mx-auto">
-        <section>
+        <Reveal as="section">
           <SectionHeader icon={<Shield size={22} />}>Role ranks</SectionHeader>
           <RoleRankStripe
             summary={summary}
@@ -78,26 +79,28 @@ async function HomeContent({
             view={view}
             breakdown={breakdown}
           />
-        </section>
+        </Reveal>
 
-        <section>
+        <Reveal as="section" delay={60}>
           <SectionHeader icon={<Star size={22} />}>Most played</SectionHeader>
           <MostPlayed stats={stats} heroNames={heroNamesMap} />
-        </section>
+        </Reveal>
 
-        <section>
+        <Reveal as="section" delay={60}>
           <SectionHeader icon={<Target size={22} />}>Career overview</SectionHeader>
           <CareerOverview stats={stats} view={view} breakdown={breakdown} />
-        </section>
+        </Reveal>
 
-        <Suspense fallback={<CareerDetailSkeleton />}>
-          <CareerDetail view={view} />
-        </Suspense>
+        <Reveal delay={60}>
+          <Suspense fallback={<CareerDetailSkeleton />}>
+            <CareerDetail view={view} />
+          </Suspense>
+        </Reveal>
 
-        <section>
+        <Reveal as="section" delay={60}>
           <SectionHeader icon={<ListTree size={22} />}>Your roster</SectionHeader>
           <RosterTable stats={stats} heroRoles={heroRoles} heroNames={heroNames} />
-        </section>
+        </Reveal>
       </div>
     </>
   )

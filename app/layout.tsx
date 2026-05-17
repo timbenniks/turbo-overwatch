@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Roboto } from 'next/font/google'
 import { SiteHeader } from '@/components/site-header'
 import { ServiceWorkerRegister } from '@/components/service-worker-register'
+import { InstallPrompt } from '@/components/install-prompt'
 import './globals.css'
 
 const roboto = Roboto({
@@ -52,6 +53,7 @@ export default function RootLayout({
           <SiteHeader />
         </Suspense>
         {children}
+        <InstallPrompt />
         <ServiceWorkerRegister />
       </body>
     </html>

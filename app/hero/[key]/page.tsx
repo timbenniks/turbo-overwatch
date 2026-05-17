@@ -22,6 +22,7 @@ import { SectionHeader } from '@/components/section-header'
 import { BestMoments } from '@/components/best-moments'
 import { BestMomentsSkeleton, CareerDetailSkeleton } from '@/components/skeletons'
 import { Crosshair, ListTree } from '@/components/icons'
+import { Reveal } from '@/components/reveal'
 
 export default function HeroDetailPage({
   params,
@@ -84,24 +85,32 @@ async function HeroContent({
       </div>
 
       <div className="px-4 md:px-16 mt-10 md:mt-16 space-y-10 md:space-y-16 max-w-400 mx-auto">
-        {hero && <HeroIdentityCard hero={hero} />}
+        {hero && (
+          <Reveal>
+            <HeroIdentityCard hero={hero} />
+          </Reveal>
+        )}
 
         {hero && hero.abilities && hero.abilities.length > 0 && (
-          <HeroAbilities abilities={hero.abilities} />
+          <Reveal delay={60}>
+            <HeroAbilities abilities={hero.abilities} />
+          </Reveal>
         )}
 
         {heroStats && generalStats && stats && (
           <>
-            <section>
+            <Reveal as="section" delay={60}>
               <SectionHeader icon={<Crosshair size={22} />}>Combat signature</SectionHeader>
               <CombatSignature heroStats={heroStats} generalStats={generalStats} />
-            </section>
+            </Reveal>
 
-            <Suspense fallback={<CareerDetailSkeleton />}>
-              <HeroSpecificStats heroKey={key} view={view} />
-            </Suspense>
+            <Reveal delay={60}>
+              <Suspense fallback={<CareerDetailSkeleton />}>
+                <HeroSpecificStats heroKey={key} view={view} />
+              </Suspense>
+            </Reveal>
 
-            <section>
+            <Reveal as="section" delay={60}>
               <SectionHeader icon={<ListTree size={22} />}>
                 {displayName} in your roster
               </SectionHeader>
@@ -111,11 +120,13 @@ async function HeroContent({
                 theme={theme}
                 heroNames={heroNames}
               />
-            </section>
+            </Reveal>
 
-            <Suspense fallback={<BestMomentsSkeleton />}>
-              <BestMoments heroKey={key} view={view} />
-            </Suspense>
+            <Reveal delay={60}>
+              <Suspense fallback={<BestMomentsSkeleton />}>
+                <BestMoments heroKey={key} view={view} />
+              </Suspense>
+            </Reveal>
           </>
         )}
       </div>

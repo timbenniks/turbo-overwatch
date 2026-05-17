@@ -87,7 +87,7 @@ export function RosterTable({
               <Link
                 href={`/hero/${key}`}
                 key={key}
-                className="grid grid-cols-[40px_1fr_70px_70px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-3 md:gap-4 px-3 md:px-5 py-4 items-center border-b border-border-default last:border-b-0 hover:bg-surface-card-active transition-colors"
+                className="press-tactile grid grid-cols-[40px_1fr_70px_70px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-3 md:gap-4 px-3 md:px-5 py-4 items-center border-b border-border-default last:border-b-0 hover:bg-surface-card-active"
                 style={{ borderLeft: `4px solid ${theme.primary}` }}
               >
                 <div className="relative w-9 h-9 md:w-11 md:h-11 rounded-full overflow-hidden bg-border-default">
