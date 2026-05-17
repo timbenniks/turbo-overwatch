@@ -18,6 +18,7 @@ import { SectionHeader } from '@/components/section-header'
 import { CareerDetailSkeleton } from '@/components/skeletons'
 import { Shield, Star, Target, ListTree } from '@/components/icons'
 import { Reveal } from '@/components/reveal'
+import { PrefetchHeroes } from '@/components/prefetch-heroes'
 import type { Role } from '@/types/overfast'
 
 export default function HomePage({
@@ -61,8 +62,11 @@ async function HomeContent({
   }
   const heroNamesMap = new Map(Object.entries(heroNames))
 
+  const playedHeroKeys = Object.keys(stats.heroes)
+
   return (
     <>
+      <PrefetchHeroes heroKeys={playedHeroKeys} />
       <HeroSpotlight
         stats={stats}
         view={view}

@@ -48,6 +48,7 @@ function HeroCardLarge({
   return (
     <Link
       href={`/hero/${heroKey}`}
+      prefetch
       className="relative block aspect-3/4 rounded-2xl overflow-hidden bg-surface-card border border-border-default group"
     >
       {portrait && (
