@@ -1,0 +1,45 @@
+name: Daily stats snapshot
+
+on:
+  schedule:
+    # 06:00 UTC every day. Cron in GitHub Actions can run a few minutes late.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run snapshot
+        run: node scripts/snapshot.mjs
+        env:
+          PLAYER_ID: ${{ vars.PLAYER_ID || 'b3nx-21103' }}
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [[ -n "$(git status --porcelain data/history.json)" ]]; then
+            git add data/history.json
+            git commit -m "chore(snapshot): $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo 'No changes to commit.'
+          fi
