@@ -1,6 +1,13 @@
 import { Suspense } from 'react'
-import { getPlayerSummary, getPlayerStatsSummary, getHeroList } from '@/lib/overfast'
+import {
+  getPlayerSummary,
+  getPlayerStatsBreakdown,
+  selectStatsForView,
+  getHeroList,
+} from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
+import { parseViewMode } from '@/lib/view-mode'
+import type { ViewMode } from '@/lib/view-mode'
 import { HeroSpotlight } from '@/components/hero-spotlight'
 import { RoleRankStripe } from '@/components/role-rank-stripe'
 import { MostPlayed } from '@/components/most-played'
@@ -10,26 +17,36 @@ import { RosterTable } from '@/components/roster-table'
 import { SectionHeader } from '@/components/section-header'
 import { CareerDetailSkeleton } from '@/components/skeletons'
 import { Shield, Star, Target, ListTree } from '@/components/icons'
-import type { Gamemode, Role } from '@/types/overfast'
+import type { Role } from '@/types/overfast'
 
-const GAMEMODE: Gamemode = 'quickplay'
-
-export default function HomePage() {
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>
+}) {
   return (
     <main className="w-full pb-32 md:pb-16">
       <Suspense fallback={<HomeSkeleton />}>
-        <HomeContent />
+        <HomeContent searchParams={searchParams} />
       </Suspense>
     </main>
   )
 }
 
-async function HomeContent() {
-  const [summary, stats, heroList] = await Promise.all([
+async function HomeContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>
+}) {
+  const { mode } = await searchParams
+  const view: ViewMode = parseViewMode(mode)
+
+  const [summary, breakdown, heroList] = await Promise.all([
     getPlayerSummary(PLAYER_ID),
-    getPlayerStatsSummary(PLAYER_ID, { gamemode: GAMEMODE }),
+    getPlayerStatsBreakdown(PLAYER_ID),
     getHeroList(),
   ])
+  const stats = selectStatsForView(breakdown, view)
 
   if (!summary || !stats) {
     return <PlayerNotFound />
@@ -46,8 +63,8 @@ async function HomeContent() {
   return (
     <>
       <HeroSpotlight
-        summary={summary}
         stats={stats}
+        view={view}
         heroRoles={heroRoles}
         heroNames={heroNames}
       />
@@ -55,7 +72,12 @@ async function HomeContent() {
       <div className="px-4 md:px-16 space-y-10 md:space-y-16 mt-8 md:mt-12 max-w-400 mx-auto">
         <section>
           <SectionHeader icon={<Shield size={22} />}>Role ranks</SectionHeader>
-          <RoleRankStripe summary={summary} stats={stats} />
+          <RoleRankStripe
+            summary={summary}
+            stats={stats}
+            view={view}
+            breakdown={breakdown}
+          />
         </section>
 
         <section>
@@ -65,11 +87,11 @@ async function HomeContent() {
 
         <section>
           <SectionHeader icon={<Target size={22} />}>Career overview</SectionHeader>
-          <CareerOverview stats={stats} gamemode={GAMEMODE} />
+          <CareerOverview stats={stats} view={view} breakdown={breakdown} />
         </section>
 
         <Suspense fallback={<CareerDetailSkeleton />}>
-          <CareerDetail gamemode={GAMEMODE} />
+          <CareerDetail view={view} />
         </Suspense>
 
         <section>

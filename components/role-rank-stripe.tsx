@@ -1,5 +1,24 @@
 import { formatPercent } from '@/lib/format'
-import type { PlayerSummary, PlayerStatsSummary, Role, Rank } from '@/types/overfast'
+import type { StatsSummaryBreakdown } from '@/lib/overfast'
+import type { ViewMode } from '@/lib/view-mode'
+import type {
+  PlayerSummary,
+  PlayerStatsSummary,
+  Role,
+  Rank,
+  StatsSummary,
+} from '@/types/overfast'
+
+const EMPTY_ROLE: StatsSummary = {
+  games_played: 0,
+  games_won: 0,
+  games_lost: 0,
+  time_played: 0,
+  winrate: 0,
+  kda: 0,
+  total: { eliminations: 0, assists: 0, deaths: 0, damage: 0, healing: 0 },
+  average: { eliminations: 0, assists: 0, deaths: 0, damage: 0, healing: 0 },
+}
 
 const ROLES: Role[] = ['tank', 'damage', 'support']
 
@@ -35,17 +54,25 @@ const DIVISION_COLORS: Record<string, string> = {
 export function RoleRankStripe({
   summary,
   stats,
+  view,
+  breakdown,
 }: {
   summary: PlayerSummary
   stats: PlayerStatsSummary
+  view: ViewMode
+  breakdown: StatsSummaryBreakdown
 }) {
   const pcRanks = summary.competitive?.pc
+  const showBreakdown = view === 'all'
+  const hideRank = view === 'quickplay'
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {ROLES.map((role) => {
         const rank = pcRanks?.[role] ?? null
-        const roleStats = stats.roles[role]
+        const roleStats = stats.roles?.[role] ?? EMPTY_ROLE
+        const qpRole = breakdown.quickplay?.roles?.[role]
+        const compRole = breakdown.competitive?.roles?.[role]
 
         return (
           <div
@@ -61,7 +88,12 @@ export function RoleRankStripe({
               </span>
             </div>
 
-            <RankDisplay rank={rank} />
+            {!hideRank && <RankDisplay rank={rank} />}
+            {hideRank && (
+              <div className="h-16 flex items-center text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
+                Ranks shown in comp / all view
+              </div>
+            )}
 
             <div className="mt-5 pt-5 border-t border-border-default flex items-baseline justify-between gap-3">
               <div>
@@ -86,6 +118,23 @@ export function RoleRankStripe({
                 </div>
               </div>
             </div>
+
+            {showBreakdown && (qpRole || compRole) && (
+              <div className="mt-4 pt-4 border-t border-border-default flex items-center justify-between text-[10px] uppercase tracking-[0.2em] font-bold text-text-tertiary">
+                <span>
+                  QP{' '}
+                  <span className="text-text-secondary">
+                    {qpRole?.games_played ?? 0}g · {formatPercent(qpRole?.winrate ?? 0)}
+                  </span>
+                </span>
+                <span>
+                  CP{' '}
+                  <span className="text-text-secondary">
+                    {compRole?.games_played ?? 0}g · {formatPercent(compRole?.winrate ?? 0)}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         )
       })}

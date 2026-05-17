@@ -1,25 +1,45 @@
 import { PercentileCallout } from '@/components/percentile-callout'
 import { percentile, type PercentileResult } from '@/lib/stats-helpers'
 import { formatTime, formatPercent } from '@/lib/format'
-import type { PlayerStatsSummary, Gamemode } from '@/types/overfast'
+import type { StatsSummaryBreakdown } from '@/lib/overfast'
+import { viewModeLabel, type ViewMode } from '@/lib/view-mode'
+import type { PlayerStatsSummary } from '@/types/overfast'
 
 export function CareerOverview({
   stats,
-  gamemode,
+  view,
+  breakdown,
 }: {
   stats: PlayerStatsSummary
-  gamemode: Gamemode
+  view: ViewMode
+  breakdown?: StatsSummaryBreakdown
 }) {
   const g = stats.general
   const time = formatTime(g.time_played)
+  const qp = breakdown?.quickplay?.general
+  const cp = breakdown?.competitive?.general
+  const showBreakdown = view === 'all' && (qp || cp)
 
   return (
     <div>
-      <div className="flex justify-end items-baseline mb-4">
+      <div className="flex justify-between items-baseline mb-4 gap-4 flex-wrap">
         <span className="text-[11px] text-text-tertiary uppercase tracking-[0.2em] font-bold">
-          PC · {gamemode === 'competitive' ? 'competitive' : 'quick play'} · {time.value}
+          PC · {viewModeLabel(view)} · {time.value}
           {time.unit} · {g.games_played} matches
         </span>
+        {showBreakdown && (
+          <span className="text-[10px] text-text-tertiary uppercase tracking-[0.2em] font-bold">
+            QP{' '}
+            <span className="text-text-secondary">
+              {qp?.games_played ?? 0}g · {formatPercent(qp?.winrate ?? 0)}
+            </span>
+            {'  ·  '}
+            CP{' '}
+            <span className="text-text-secondary">
+              {cp?.games_played ?? 0}g · {formatPercent(cp?.winrate ?? 0)}
+            </span>
+          </span>
+        )}
       </div>
       <div className="bg-surface-card border border-border-default rounded-2xl grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-border-default">
         <Cell

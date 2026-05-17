@@ -1,16 +1,13 @@
 import Image from 'next/image'
 import { getHeroPortrait } from '@/lib/hero-assets'
-import { GameModeTabs } from '@/components/game-mode-tabs'
-import type { Hero, Gamemode } from '@/types/overfast'
+import type { Hero } from '@/types/overfast'
 
 export function HeroBanner({
   heroKey,
   hero,
-  gamemode,
 }: {
   heroKey: string
   hero: Hero | null
-  gamemode: Gamemode
 }) {
   const portrait = getHeroPortrait(heroKey)
   const displayName = hero?.name ?? heroKey.replace(/-/g, ' ')
@@ -45,14 +42,6 @@ export function HeroBanner({
         )}
       </div>
 
-      <div className="absolute top-6 right-6 md:top-8 md:right-8">
-        <GameModeTabs
-          current={gamemode}
-          basePath={`/hero/${heroKey}`}
-          variant="dark"
-          size="sm"
-        />
-      </div>
     </div>
   )
 }

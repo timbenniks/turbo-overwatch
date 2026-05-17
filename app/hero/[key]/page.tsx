@@ -1,14 +1,16 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import {
-  getPlayerStatsSummary,
+  getPlayerStatsBreakdown,
+  selectStatsForView,
   getHero,
   getHeroList,
 } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
+import { parseViewMode } from '@/lib/view-mode'
+import type { ViewMode } from '@/lib/view-mode'
 import { getHeroTheme } from '@/lib/hero-theme'
 import { getHeroPortrait } from '@/lib/hero-assets'
-import { Breadcrumb } from '@/components/breadcrumb'
 import { HeroBanner } from '@/components/hero-banner'
 import { HeroIdentityCard } from '@/components/hero-identity-card'
 import { HeroAbilities } from '@/components/hero-abilities'
@@ -20,7 +22,6 @@ import { SectionHeader } from '@/components/section-header'
 import { BestMoments } from '@/components/best-moments'
 import { BestMomentsSkeleton, CareerDetailSkeleton } from '@/components/skeletons'
 import { Crosshair, ListTree } from '@/components/icons'
-import type { Gamemode } from '@/types/overfast'
 
 export default function HeroDetailPage({
   params,
@@ -47,13 +48,14 @@ async function HeroContent({
 }) {
   const { key } = await params
   const { mode } = await searchParams
-  const gamemode: Gamemode = mode === 'competitive' ? 'competitive' : 'quickplay'
+  const view: ViewMode = parseViewMode(mode)
 
-  const [stats, hero, heroList] = await Promise.all([
-    getPlayerStatsSummary(PLAYER_ID, { gamemode }),
+  const [breakdown, hero, heroList] = await Promise.all([
+    getPlayerStatsBreakdown(PLAYER_ID),
     getHero(key),
     getHeroList(),
   ])
+  const stats = selectStatsForView(breakdown, view)
 
   if (!hero && !getHeroPortrait(key)) notFound()
 
@@ -67,10 +69,7 @@ async function HeroContent({
 
   return (
     <>
-      <div className="relative">
-        <Breadcrumb heroName={displayName} />
-        <HeroBanner heroKey={key} hero={hero} gamemode={gamemode} />
-      </div>
+      <HeroBanner heroKey={key} hero={hero} />
 
       <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
         {heroStats ? (
@@ -99,7 +98,7 @@ async function HeroContent({
             </section>
 
             <Suspense fallback={<CareerDetailSkeleton />}>
-              <HeroSpecificStats heroKey={key} gamemode={gamemode} />
+              <HeroSpecificStats heroKey={key} view={view} />
             </Suspense>
 
             <section>
@@ -115,7 +114,7 @@ async function HeroContent({
             </section>
 
             <Suspense fallback={<BestMomentsSkeleton />}>
-              <BestMoments heroKey={key} gamemode={gamemode} />
+              <BestMoments heroKey={key} view={view} />
             </Suspense>
           </>
         )}

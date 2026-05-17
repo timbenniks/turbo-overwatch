@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import type { Gamemode } from '@/types/overfast'
+import type { ViewMode } from '@/lib/view-mode'
 
-const MODES: Array<{ key: Gamemode; label: string; short: string }> = [
+const MODES: Array<{ key: ViewMode; label: string; short: string }> = [
+  { key: 'all', label: 'All', short: 'All' },
   { key: 'quickplay', label: 'Quickplay', short: 'QP' },
-  { key: 'competitive', label: 'Competitive', short: 'CP' },
+  { key: 'competitive', label: 'Competitive', short: 'Ranked' },
 ]
 
 export function GameModeTabs({
@@ -15,7 +16,7 @@ export function GameModeTabs({
   variant = 'light',
   size = 'md',
 }: {
-  current: Gamemode
+  current: ViewMode
   basePath?: string
   variant?: 'light' | 'dark'
   size?: 'sm' | 'md'
@@ -24,9 +25,9 @@ export function GameModeTabs({
   const params = useSearchParams()
   const target = basePath ?? pathname
 
-  function hrefFor(mode: Gamemode) {
+  function hrefFor(mode: ViewMode) {
     const p = new URLSearchParams(params.toString())
-    if (mode === 'quickplay') p.delete('mode')
+    if (mode === 'all') p.delete('mode')
     else p.set('mode', mode)
     const qs = p.toString()
     return qs ? `${target}?${qs}` : target
@@ -44,7 +45,7 @@ export function GameModeTabs({
     variant === 'dark'
       ? 'text-white/80 hover:text-white'
       : 'text-text-tertiary hover:text-text-secondary'
-  const sizing = size === 'sm' ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-[11px]'
+  const sizing = size === 'sm' ? 'px-3 py-1 text-[10px]' : 'px-3 md:px-4 py-1.5 text-[10px] md:text-[11px]'
 
   return (
     <div
@@ -58,7 +59,14 @@ export function GameModeTabs({
             current === m.key ? activeCls : inactiveCls
           }`}
         >
-          {size === 'sm' ? m.short : m.label}
+          {size === 'sm' ? (
+            m.short
+          ) : (
+            <>
+              <span className="md:hidden">{m.short}</span>
+              <span className="hidden md:inline">{m.label}</span>
+            </>
+          )}
         </Link>
       ))}
     </div>

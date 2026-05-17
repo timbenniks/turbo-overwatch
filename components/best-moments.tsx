@@ -1,17 +1,17 @@
-import { getPlayerStatsDeep, type DeepStat } from '@/lib/overfast'
+import { getPlayerStatsDeepForView, type DeepStat } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { SectionHeader } from '@/components/section-header'
 import { Trophy } from '@/components/icons'
-import type { Gamemode } from '@/types/overfast'
+import type { ViewMode } from '@/lib/view-mode'
 
 export async function BestMoments({
   heroKey,
-  gamemode,
+  view,
 }: {
   heroKey: string
-  gamemode: Gamemode
+  view: ViewMode
 }) {
-  const deep = await getPlayerStatsDeep(PLAYER_ID, { gamemode, hero: heroKey })
+  const deep = await getPlayerStatsDeepForView(PLAYER_ID, view, { hero: heroKey })
   const categories = deep?.[heroKey] ?? []
   const best = categories.find((c) => c.category === 'best')?.stats ?? []
 

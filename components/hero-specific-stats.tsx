@@ -1,9 +1,9 @@
-import { getPlayerStatsDeep } from '@/lib/overfast'
+import { getPlayerStatsDeepForView } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { SectionHeader } from '@/components/section-header'
 import { Star } from '@/components/icons'
 import { formatNumber } from '@/lib/format'
-import type { Gamemode } from '@/types/overfast'
+import type { ViewMode } from '@/lib/view-mode'
 
 const EXCLUDED_SUFFIXES = [
   '_most_in_game',
@@ -14,12 +14,12 @@ const EXCLUDED_SUFFIXES = [
 
 export async function HeroSpecificStats({
   heroKey,
-  gamemode,
+  view,
 }: {
   heroKey: string
-  gamemode: Gamemode
+  view: ViewMode
 }) {
-  const deep = await getPlayerStatsDeep(PLAYER_ID, { gamemode, hero: heroKey })
+  const deep = await getPlayerStatsDeepForView(PLAYER_ID, view, { hero: heroKey })
   const categories = deep?.[heroKey] ?? []
   const hs = categories.find((c) => c.category === 'hero_specific')?.stats ?? []
 

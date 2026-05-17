@@ -1,14 +1,14 @@
-import { getPlayerStatsDeep } from '@/lib/overfast'
+import { getPlayerStatsDeepForView } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { SectionHeader } from '@/components/section-header'
 import { PercentileCallout } from '@/components/percentile-callout'
 import { Award, Bolt } from '@/components/icons'
 import { percentile } from '@/lib/stats-helpers'
 import { formatTime, formatNumber } from '@/lib/format'
-import type { Gamemode } from '@/types/overfast'
+import type { ViewMode } from '@/lib/view-mode'
 
-export async function CareerDetail({ gamemode }: { gamemode: Gamemode }) {
-  const deep = await getPlayerStatsDeep(PLAYER_ID, { gamemode, hero: 'all-heroes' })
+export async function CareerDetail({ view }: { view: ViewMode }) {
+  const deep = await getPlayerStatsDeepForView(PLAYER_ID, view, { hero: 'all-heroes' })
   const categories = deep?.['all-heroes'] ?? []
   if (categories.length === 0) return null
 

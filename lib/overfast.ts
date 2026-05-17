@@ -1,5 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { BASE_URL } from './constants'
+import { mergeSummary, mergeDeep } from './merge-stats'
+import type { ViewMode } from './view-mode'
 import type {
   PlayerSummary,
   PlayerStatsSummary,
@@ -118,6 +120,56 @@ export async function getPlayerStatsDeep(
   if (res.status === 404) return null
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
+}
+
+export type StatsSummaryBreakdown = {
+  combined: PlayerStatsSummary | null
+  quickplay: PlayerStatsSummary | null
+  competitive: PlayerStatsSummary | null
+}
+
+export async function getPlayerStatsBreakdown(
+  playerId: string,
+  opts: { platform?: Platform } = {}
+): Promise<StatsSummaryBreakdown> {
+  const [quickplay, competitive] = await Promise.all([
+    getPlayerStatsSummary(playerId, { gamemode: 'quickplay', platform: opts.platform }),
+    getPlayerStatsSummary(playerId, { gamemode: 'competitive', platform: opts.platform }),
+  ])
+  return {
+    quickplay,
+    competitive,
+    combined: mergeSummary(quickplay, competitive),
+  }
+}
+
+export function selectStatsForView(
+  breakdown: StatsSummaryBreakdown,
+  view: ViewMode
+): PlayerStatsSummary | null {
+  if (view === 'quickplay') return breakdown.quickplay
+  if (view === 'competitive') return breakdown.competitive
+  return breakdown.combined
+}
+
+export async function getPlayerStatsDeepForView(
+  playerId: string,
+  view: ViewMode,
+  opts: { platform?: Platform; hero?: string } = {}
+): Promise<PlayerStatsDeep | null> {
+  if (view !== 'all') {
+    return getPlayerStatsDeep(playerId, { gamemode: view, ...opts })
+  }
+  const [qpDeep, compDeep, qpSummary, compSummary] = await Promise.all([
+    getPlayerStatsDeep(playerId, { gamemode: 'quickplay', ...opts }),
+    getPlayerStatsDeep(playerId, { gamemode: 'competitive', ...opts }),
+    getPlayerStatsSummary(playerId, { gamemode: 'quickplay', platform: opts.platform }),
+    getPlayerStatsSummary(playerId, { gamemode: 'competitive', platform: opts.platform }),
+  ])
+  return mergeDeep(
+    { deep: qpDeep, timePlayed: qpSummary?.general.time_played ?? 0 },
+    { deep: compDeep, timePlayed: compSummary?.general.time_played ?? 0 }
+  )
 }
 
 export async function getGlobalHeroStats(
