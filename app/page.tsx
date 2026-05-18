@@ -18,12 +18,14 @@ import { SectionHeader } from '@/components/section-header'
 import { CareerDetailSkeleton } from '@/components/skeletons'
 import { Shield, Star, Target, ListTree } from '@/components/icons'
 import { Reveal } from '@/components/reveal'
+import { TrendsSection } from '@/components/trends-section'
+import { parseTrendMode } from '@/lib/trend-mode'
 import type { Role } from '@/types/overfast'
 
 export default function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; trend?: string }>
 }) {
   return (
     <main className="w-full pb-32 md:pb-16">
@@ -37,10 +39,11 @@ export default function HomePage({
 async function HomeContent({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; trend?: string }>
 }) {
-  const { mode } = await searchParams
+  const { mode, trend } = await searchParams
   const view: ViewMode = parseViewMode(mode)
+  const trendMode = parseTrendMode(trend)
 
   const [summary, breakdown, heroList] = await Promise.all([
     getPlayerSummary(PLAYER_ID),
@@ -100,6 +103,10 @@ async function HomeContent({
         <Reveal as="section" delay={60}>
           <SectionHeader icon={<ListTree size={22} />}>Your roster</SectionHeader>
           <RosterTable stats={stats} heroRoles={heroRoles} heroNames={heroNames} />
+        </Reveal>
+
+        <Reveal delay={60}>
+          <TrendsSection view={view} trendMode={trendMode} />
         </Reveal>
       </div>
     </>

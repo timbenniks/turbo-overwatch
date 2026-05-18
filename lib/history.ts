@@ -173,22 +173,122 @@ export type DailyDelta = {
   games_played: number
   time_played: number
   wins: number
+  winrate: number
+  kda: number
 }
 
 // Returns per-day deltas — i.e. games played *that day*, derived by subtracting
 // consecutive cumulative snapshots. Useful for "activity" bar charts.
 export async function getDailyDelta(view: ViewMode, days = 30): Promise<DailyDelta[]> {
-  const trend = await getTrend(view, days + 1)
+  const snaps = await getHistory()
+  const cutoff = new Date()
+  cutoff.setUTCDate(cutoff.getUTCDate() - (days + 1))
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const filtered: { date: string; mode: HistoryModeSnapshot }[] = []
+  for (const snap of snaps) {
+    if (snap.date < cutoffStr) continue
+    const mode = pickForView(snap, view)
+    if (!mode) continue
+    filtered.push({ date: snap.date, mode })
+  }
+
   const out: DailyDelta[] = []
-  for (let i = 1; i < trend.length; i++) {
-    const prev = trend[i - 1]
-    const curr = trend[i]
+  for (let i = 1; i < filtered.length; i++) {
+    const prev = filtered[i - 1].mode.general
+    const curr = filtered[i].mode.general
     const games = Math.max(0, curr.games_played - prev.games_played)
     const time = Math.max(0, curr.time_played - prev.time_played)
-    const prevWins = (prev.winrate / 100) * prev.games_played
-    const currWins = (curr.winrate / 100) * curr.games_played
-    const wins = Math.max(0, Math.round(currWins - prevWins))
-    out.push({ date: curr.date, games_played: games, time_played: time, wins })
+    const wins = Math.max(0, curr.games_won - prev.games_won)
+    const elims = curr.eliminations - prev.eliminations
+    const assists = curr.assists - prev.assists
+    const deaths = curr.deaths - prev.deaths
+    const winrate = games > 0 ? (wins / games) * 100 : 0
+    const kda = deaths > 0 ? (elims + assists) / deaths : elims + assists
+    out.push({
+      date: filtered[i].date,
+      games_played: games,
+      time_played: time,
+      wins,
+      winrate,
+      kda,
+    })
+  }
+  return out
+}
+
+export type RoleTrendPoint = {
+  date: string
+  tank: { winrate: number; kda: number; games_played: number }
+  damage: { winrate: number; kda: number; games_played: number }
+  support: { winrate: number; kda: number; games_played: number }
+}
+
+export async function getRoleTrend(view: ViewMode, days = 90): Promise<RoleTrendPoint[]> {
+  const snaps = await getHistory()
+  const cutoff = new Date()
+  cutoff.setUTCDate(cutoff.getUTCDate() - days)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const out: RoleTrendPoint[] = []
+  for (const snap of snaps) {
+    if (snap.date < cutoffStr) continue
+    const mode = pickForView(snap, view)
+    if (!mode) continue
+    out.push({
+      date: snap.date,
+      tank: pickRole(mode.roles.tank),
+      damage: pickRole(mode.roles.damage),
+      support: pickRole(mode.roles.support),
+    })
+  }
+  return out
+}
+
+function pickRole(r: HistoryModeSnapshot['roles'][keyof HistoryModeSnapshot['roles']]) {
+  return { winrate: r.winrate, kda: r.kda, games_played: r.games_played }
+}
+
+const DIVISION_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'champion']
+
+export function rankToScore(rank: { division: string; tier: number } | null | undefined): number | null {
+  if (!rank) return null
+  const idx = DIVISION_ORDER.indexOf(rank.division.toLowerCase())
+  if (idx < 0) return null
+  // Tier 5 = bottom of division, tier 1 = top. Encode so higher = better.
+  return idx * 5 + (6 - rank.tier)
+}
+
+export type RankTrendPoint = {
+  date: string
+  tank: number | null
+  damage: number | null
+  support: number | null
+  tankRank: { division: string; tier: number } | null
+  damageRank: { division: string; tier: number } | null
+  supportRank: { division: string; tier: number } | null
+}
+
+export async function getRankTrend(days = 90): Promise<RankTrendPoint[]> {
+  const snaps = await getHistory()
+  const cutoff = new Date()
+  cutoff.setUTCDate(cutoff.getUTCDate() - days)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const out: RankTrendPoint[] = []
+  for (const snap of snaps) {
+    if (snap.date < cutoffStr) continue
+    const ranks = snap.competitive?.ranks
+    if (!ranks) continue
+    out.push({
+      date: snap.date,
+      tank: rankToScore(ranks.tank),
+      damage: rankToScore(ranks.damage),
+      support: rankToScore(ranks.support),
+      tankRank: ranks.tank,
+      damageRank: ranks.damage,
+      supportRank: ranks.support,
+    })
   }
   return out
 }

@@ -162,6 +162,15 @@ export function User({ className = '', size = 16 }: IconProps) {
   )
 }
 
+export function TrendingUp({ className = '', size = 16 }: IconProps) {
+  return (
+    <svg {...base(size, className)}>
+      <polyline points="3 17 9 11 13 15 21 7" />
+      <polyline points="14 7 21 7 21 14" />
+    </svg>
+  )
+}
+
 export function ListTree({ className = '', size = 16 }: IconProps) {
   return (
     <svg {...base(size, className)}>
