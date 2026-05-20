@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-export const dynamic = 'force-dynamic'
-
 const OWNER = 'timbenniks'
 const REPO = 'turbo-overwatch'
 const WORKFLOW_FILE = 'snapshot.yml'
