@@ -2104,6 +2104,213 @@
           "support": null
         }
       }
+    },
+    {
+      "date": "2026-05-28",
+      "capturedAt": "2026-05-28T06:00:47.551Z",
+      "quickplay": {
+        "general": {
+          "time_played": 89431,
+          "games_played": 186,
+          "games_won": 87,
+          "winrate": 46.77,
+          "kda": 2.3,
+          "eliminations": 2301,
+          "assists": 118,
+          "deaths": 1051,
+          "damage": 1362755,
+          "healing": 238824
+        },
+        "roles": {
+          "tank": {
+            "time_played": 25518,
+            "games_played": 54,
+            "winrate": 38.89,
+            "kda": 3.21
+          },
+          "damage": {
+            "time_played": 29707,
+            "games_played": 61,
+            "winrate": 52.46,
+            "kda": 2.61
+          },
+          "support": {
+            "time_played": 34206,
+            "games_played": 71,
+            "winrate": 47.89,
+            "kda": 1.52
+          }
+        },
+        "heroes": {
+          "ana": {
+            "time_played": 325,
+            "games_played": 1,
+            "winrate": 100,
+            "kda": 7
+          },
+          "ashe": {
+            "time_played": 480,
+            "games_played": 1,
+            "winrate": 0,
+            "kda": 0.44
+          },
+          "baptiste": {
+            "time_played": 31388,
+            "games_played": 65,
+            "winrate": 46.15,
+            "kda": 1.48
+          },
+          "cassidy": {
+            "time_played": 132,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0.33
+          },
+          "emre": {
+            "time_played": 1038,
+            "games_played": 2,
+            "winrate": 50,
+            "kda": 1.35
+          },
+          "illari": {
+            "time_played": 405,
+            "games_played": 1,
+            "winrate": 0,
+            "kda": 0.5
+          },
+          "jetpack-cat": {
+            "time_played": 998,
+            "games_played": 2,
+            "winrate": 100,
+            "kda": 4.12
+          },
+          "junkrat": {
+            "time_played": 137,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0
+          },
+          "kiriko": {
+            "time_played": 800,
+            "games_played": 2,
+            "winrate": 50,
+            "kda": 1.27
+          },
+          "lucio": {
+            "time_played": 204,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0.67
+          },
+          "orisa": {
+            "time_played": 19830,
+            "games_played": 42,
+            "winrate": 45.24,
+            "kda": 3.56
+          },
+          "ramattra": {
+            "time_played": 4559,
+            "games_played": 9,
+            "winrate": 11.11,
+            "kda": 2.78
+          },
+          "reinhardt": {
+            "time_played": 859,
+            "games_played": 2,
+            "winrate": 50,
+            "kda": 0.93
+          },
+          "sierra": {
+            "time_played": 675,
+            "games_played": 2,
+            "winrate": 0,
+            "kda": 1.67
+          },
+          "soldier-76": {
+            "time_played": 27067,
+            "games_played": 56,
+            "winrate": 55.36,
+            "kda": 2.83
+          },
+          "widowmaker": {
+            "time_played": 178,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0.67
+          },
+          "wrecking-ball": {
+            "time_played": 270,
+            "games_played": 1,
+            "winrate": 0,
+            "kda": 0.5
+          },
+          "zenyatta": {
+            "time_played": 86,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0
+          }
+        }
+      },
+      "competitive": {
+        "general": {
+          "time_played": 26528,
+          "games_played": 42,
+          "games_won": 21,
+          "winrate": 50,
+          "kda": 2.39,
+          "eliminations": 695,
+          "assists": 25,
+          "deaths": 301,
+          "damage": 518484,
+          "healing": 36590
+        },
+        "roles": {
+          "tank": {
+            "time_played": 7015,
+            "games_played": 11,
+            "winrate": 45.45,
+            "kda": 3.83
+          },
+          "damage": {
+            "time_played": 19513,
+            "games_played": 31,
+            "winrate": 51.61,
+            "kda": 2.04
+          },
+          "support": {
+            "time_played": 0,
+            "games_played": 0,
+            "winrate": 0,
+            "kda": 0
+          }
+        },
+        "heroes": {
+          "orisa": {
+            "time_played": 7015,
+            "games_played": 11,
+            "winrate": 45.45,
+            "kda": 3.83
+          },
+          "soldier-76": {
+            "time_played": 19513,
+            "games_played": 31,
+            "winrate": 51.61,
+            "kda": 2.04
+          }
+        },
+        "ranks": {
+          "tank": {
+            "division": "bronze",
+            "tier": 2
+          },
+          "damage": {
+            "division": "silver",
+            "tier": 5
+          },
+          "support": null
+        }
+      }
     }
   ]
 }
