@@ -10,22 +10,23 @@ import { parseViewMode } from '@/lib/view-mode'
 import type { ViewMode } from '@/lib/view-mode'
 import { HeroSpotlight } from '@/components/hero-spotlight'
 import { RoleRankStripe } from '@/components/role-rank-stripe'
+import { ModeHeader } from '@/components/mode-header'
 import { MostPlayed } from '@/components/most-played'
 import { CareerOverview } from '@/components/career-overview'
 import { CareerDetail } from '@/components/career-detail'
 import { RosterTable } from '@/components/roster-table'
 import { SectionHeader } from '@/components/section-header'
-import { CareerDetailSkeleton } from '@/components/skeletons'
+import { CareerDetailSkeleton, CareerOverviewSkeleton } from '@/components/skeletons'
 import { Shield, Star, Target, ListTree } from '@/components/icons'
 import { Reveal } from '@/components/reveal'
 import { TrendsSection } from '@/components/trends-section'
-import { parseTrendMode } from '@/lib/trend-mode'
+import { parseTrendRange } from '@/lib/trend-range'
 import type { Role } from '@/types/overfast'
 
 export default function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; trend?: string }>
+  searchParams: Promise<{ mode?: string; range?: string }>
 }) {
   return (
     <main className="w-full pb-32 md:pb-16">
@@ -39,11 +40,11 @@ export default function HomePage({
 async function HomeContent({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; trend?: string }>
+  searchParams: Promise<{ mode?: string; range?: string }>
 }) {
-  const { mode, trend } = await searchParams
+  const { mode, range } = await searchParams
   const view: ViewMode = parseViewMode(mode)
-  const trendMode = parseTrendMode(trend)
+  const trendRange = parseTrendRange(range)
 
   const [summary, breakdown, heroList] = await Promise.all([
     getPlayerSummary(PLAYER_ID),
@@ -65,7 +66,9 @@ async function HomeContent({
   const heroNamesMap = new Map(Object.entries(heroNames))
 
   return (
-    <>
+    // One attribute re-tints the whole view: section rules, the active mode
+    // pill, single-series chart lines, the heat ramp, focus rings.
+    <div data-mode={view}>
       <HeroSpotlight
         stats={stats}
         view={view}
@@ -74,8 +77,21 @@ async function HomeContent({
       />
 
       <div className="px-4 md:px-16 space-y-10 md:space-y-16 mt-8 md:mt-12 max-w-400 mx-auto">
+        <Reveal>
+          <Suspense fallback={<CareerOverviewSkeleton />}>
+            <ModeHeader
+              view={view}
+              summary={summary}
+              stats={stats}
+              breakdown={breakdown}
+            />
+          </Suspense>
+        </Reveal>
+
         <Reveal as="section">
-          <SectionHeader icon={<Shield size={22} />}>Role ranks</SectionHeader>
+          <SectionHeader icon={<Shield size={22} />}>
+            {view === 'all' ? 'Role ranks' : 'Roles'}
+          </SectionHeader>
           <RoleRankStripe
             summary={summary}
             stats={stats}
@@ -86,12 +102,19 @@ async function HomeContent({
 
         <Reveal as="section" delay={60}>
           <SectionHeader icon={<Star size={22} />}>Most played</SectionHeader>
-          <MostPlayed stats={stats} heroNames={heroNamesMap} />
+          <MostPlayed stats={stats} heroNames={heroNamesMap} view={view} />
         </Reveal>
 
         <Reveal as="section" delay={60}>
           <SectionHeader icon={<Target size={22} />}>Career overview</SectionHeader>
-          <CareerOverview stats={stats} view={view} breakdown={breakdown} />
+          <Suspense fallback={<CareerOverviewSkeleton />}>
+            <CareerOverview
+              stats={stats}
+              view={view}
+              breakdown={breakdown}
+              lastUpdatedAt={summary.last_updated_at}
+            />
+          </Suspense>
         </Reveal>
 
         <Reveal delay={60}>
@@ -102,14 +125,19 @@ async function HomeContent({
 
         <Reveal as="section" delay={60}>
           <SectionHeader icon={<ListTree size={22} />}>Your roster</SectionHeader>
-          <RosterTable stats={stats} heroRoles={heroRoles} heroNames={heroNames} />
+          <RosterTable
+            stats={stats}
+            heroRoles={heroRoles}
+            heroNames={heroNames}
+            view={view}
+          />
         </Reveal>
 
         <Reveal delay={60}>
-          <TrendsSection view={view} trendMode={trendMode} />
+          <TrendsSection view={view} range={trendRange} />
         </Reveal>
       </div>
-    </>
+    </div>
   )
 }
 

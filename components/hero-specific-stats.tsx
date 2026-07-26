@@ -1,16 +1,18 @@
 import { getPlayerStatsDeepForView } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { SectionHeader } from '@/components/section-header'
+import { StatTable, type StatRow } from '@/components/stats/stat-table'
 import { Star } from '@/components/icons'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatPercent, formatRate, formatTime } from '@/lib/format'
 import type { ViewMode } from '@/lib/view-mode'
 
-const EXCLUDED_SUFFIXES = [
-  '_most_in_game',
-  '_best_in_game',
-  '_avg_per_10_min',
-  '_most_in_life',
-]
+// The API ships a total and an `_avg_per_10_min` rate for most hero-specific
+// stats. The old grid showed only the totals, one cell each, 17 across — which
+// is both the least useful half of the data and the hardest to scan. A two
+// column table keeps the rate, which is what makes a total comparable.
+
+const RECORD_SUFFIXES = ['_most_in_game', '_best_in_game', '_most_in_life', '_best']
+const RATE_SUFFIX = '_avg_per_10_min'
 
 export async function HeroSpecificStats({
   heroKey,
@@ -22,34 +24,57 @@ export async function HeroSpecificStats({
   const deep = await getPlayerStatsDeepForView(PLAYER_ID, view, { hero: heroKey })
   const categories = deep?.[heroKey] ?? []
   const hs = categories.find((c) => c.category === 'hero_specific')?.stats ?? []
+  if (hs.length === 0) return null
 
-  const primary = hs.filter((s) => !EXCLUDED_SUFFIXES.some((suf) => s.key.endsWith(suf)))
-  if (primary.length === 0) return null
+  const rates = new Map<string, number>()
+  for (const s of hs) {
+    if (s.key.endsWith(RATE_SUFFIX) && typeof s.value === 'number') {
+      rates.set(s.key.slice(0, -RATE_SUFFIX.length), s.value)
+    }
+  }
+
+  const seen = new Set<string>()
+  const rows: StatRow[] = []
+  for (const s of hs) {
+    if (s.key.endsWith(RATE_SUFFIX)) continue
+    if (RECORD_SUFFIXES.some((suf) => s.key.endsWith(suf))) continue
+    if (seen.has(s.key)) continue
+    seen.add(s.key)
+    const rate = rates.get(s.key)
+    rows.push({
+      label: s.label,
+      value: formatValue(s.key, s.value),
+      // A rate is meaningless on a stat that is already a percentage.
+      secondary:
+        rate !== undefined && !isPercent(s.key) ? `${formatRate(rate)} / 10m` : undefined,
+    })
+  }
+
+  if (rows.length === 0) return null
 
   return (
     <section>
       <SectionHeader icon={<Star size={22} />}>Hero specific</SectionHeader>
-
-      <div className="bg-surface-card border border-border-default rounded-2xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border-default">
-        {primary.map((s) => (
-          <div key={s.key} className="p-4 md:p-5">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-bold leading-tight min-h-7">
-              {s.label}
-            </div>
-            <div className="text-[22px] md:text-[32px] font-black mt-2 leading-none tracking-tight">
-              {formatValue(s.key, s.value)}
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatTable
+        summary="Hero specific stats"
+        groups={[{ label: 'Career', rows }]}
+        secondaryHeading="Per 10 min"
+        defaultOpen
+      />
     </section>
   )
 }
 
+function isPercent(key: string): boolean {
+  return key.includes('accuracy')
+}
+
 function formatValue(key: string, value: string | number): string {
   if (typeof value === 'string') return value
-  if (key.endsWith('_accuracy') || key.endsWith('_scoped_accuracy')) {
-    return `${Math.round(value)}%`
+  if (isPercent(key)) return formatPercent(value)
+  if (key.includes('time')) {
+    const t = formatTime(value)
+    return `${t.value}${t.unit}`
   }
   return formatNumber(value)
 }

@@ -114,6 +114,9 @@ export function mergeSummary(
 const MAX_SUFFIXES = ['_most_in_game', '_most_in_life', '_best_in_game', '_best']
 const AVG_SUFFIXES = ['_avg_per_10_min']
 const ACCURACY_SUFFIXES = ['_accuracy', '_scoped_accuracy', '_critical_hit_accuracy']
+// Percentages that don't end in a recognisable suffix. Summing these across
+// gamemodes produced nonsense — 12% on fire in QP plus 13% in comp read as 25%.
+const PERCENT_KEYS = ['of_match_on_fire', 'win_percentage']
 
 function isMaxKey(key: string): boolean {
   return MAX_SUFFIXES.some((s) => key.endsWith(s))
@@ -122,7 +125,7 @@ function isAvgKey(key: string): boolean {
   return AVG_SUFFIXES.some((s) => key.endsWith(s))
 }
 function isAccuracyKey(key: string): boolean {
-  return ACCURACY_SUFFIXES.some((s) => key.endsWith(s))
+  return ACCURACY_SUFFIXES.some((s) => key.endsWith(s)) || PERCENT_KEYS.includes(key)
 }
 
 type WeightedStat = {

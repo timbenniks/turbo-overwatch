@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import {
   getPlayerSummary,
   getPlayerStatsSummary,
@@ -7,6 +8,10 @@ import {
 import { PLAYER_ID } from '@/lib/constants'
 
 export default async function ApiDevPage() {
+  // Internal showcase — prerendered into the production build otherwise,
+  // where it is a public URL nobody intended to publish.
+  if (process.env.NODE_ENV === 'production') notFound()
+
   const [summary, stats, heroes, genji] = await Promise.all([
     getPlayerSummary(PLAYER_ID),
     getPlayerStatsSummary(PLAYER_ID, { gamemode: 'quickplay' }),

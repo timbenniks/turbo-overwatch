@@ -5,6 +5,13 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ViewMode } from '@/lib/view-mode'
 
+// Kept in step with the [data-mode] blocks in globals.css.
+const MODE_ACCENT: Record<ViewMode, string> = {
+  all: '#ffffff',
+  quickplay: '#22d3ee',
+  competitive: '#fbbf24',
+}
+
 const MODES: Array<{ key: ViewMode; label: string; short: string }> = [
   { key: 'all', label: 'All', short: 'All' },
   { key: 'quickplay', label: 'Quickplay', short: 'QP' },
@@ -55,10 +62,9 @@ export function GameModeTabs({
     variant === 'dark'
       ? 'bg-black/40 backdrop-blur-sm'
       : 'bg-surface-card border border-border-default'
-  const indicatorCls =
-    variant === 'dark' ? 'bg-white/90' : 'bg-text-primary'
-  const activeText =
-    variant === 'dark' ? 'text-text-primary' : 'text-surface-canvas'
+  // The indicator is painted with the accent of the mode it points at, not the
+  // mode currently applied — so the toggle previews the switch.
+  const activeText = variant === 'dark' ? 'text-text-primary' : 'text-surface-canvas'
   const inactiveText =
     variant === 'dark'
       ? 'text-white/80 hover:text-white'
@@ -76,11 +82,12 @@ export function GameModeTabs({
       {indicator && (
         <span
           aria-hidden
-          className={`absolute top-1 bottom-1 rounded-full ${indicatorCls} transition-[transform,width] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform`}
+          className="absolute top-1 bottom-1 rounded-full transition-[transform,width,background-color] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
           style={{
             transform: `translateX(${indicator.x}px)`,
             width: indicator.w,
             left: 0,
+            background: MODE_ACCENT[current],
           }}
         />
       )}

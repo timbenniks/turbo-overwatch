@@ -21,10 +21,33 @@
   --color-semantic-mid: #fbbf24;
   --color-semantic-warn: #fb7185;
 
-  /* Roles — bold */
-  --color-role-tank: #fb923c;
-  --color-role-damage: #fb7185;
-  --color-role-support: #a3e635;
+  /* Roles — validated for colorblind separation against the card surface.
+     See scripts/validate_palette.js in the dataviz skill: the old orange/rose
+     pair sat at ΔE 12.5 in normal vision, below the 15 floor. */
+  --color-role-tank: #3b82f6;
+  --color-role-damage: #db2777;
+  --color-role-support: #65a30d;
+
+  /* Mode accent. Default is the neutral "all modes" identity; the two real
+     game modes override it below. Both overrides were validated against the
+     role palette (all-pairs, dark surface): amber sits ΔE 23.3 from the nearest
+     role colour, cyan ΔE 22.4, and neither introduces a CVD collision. */
+  --color-accent: #ffffff;
+  --color-accent-ink: #07070a;
+
+  /* Charts — recessive chrome, so the data carries the contrast */
+  --color-chart-grid: rgba(255, 255, 255, 0.07);
+  --color-chart-axis: rgba(255, 255, 255, 0.18);
+  --color-chart-ink: #e4e4e7;
+  --color-chart-muted: rgba(255, 255, 255, 0.22);
+
+  /* Activity heatmap — single-hue sequential ramp, light→dark reversed for
+     a dark surface (empty is barely-there, busiest is full ink) */
+  --color-heat-0: rgba(255, 255, 255, 0.05);
+  --color-heat-1: rgba(255, 255, 255, 0.18);
+  --color-heat-2: rgba(255, 255, 255, 0.36);
+  --color-heat-3: rgba(255, 255, 255, 0.62);
+  --color-heat-4: #ffffff;
 
   /* Fonts — Roboto everywhere */
   --font-sans: var(--font-roboto), system-ui, sans-serif;
@@ -46,9 +69,26 @@ body {
   }
 }
 
+/* Mode identity. One attribute re-tints the whole view: section rules, the
+   active mode pill, single-series chart lines, win bars, focus rings. Quick play
+   is unranked and permanent; competitive has a ladder position and a season that
+   expires — they should not look alike. */
+[data-mode='quickplay'] {
+  --color-accent: #22d3ee;
+}
+
+[data-mode='competitive'] {
+  --color-accent: #fbbf24;
+}
+
+/* The activity heatmap deliberately stays monochrome. A sequential ramp is one
+   hue light-to-dark; tinting only its top step made a two-hue ramp, which
+   misreads as a category change rather than "more". The accent already carries
+   the mode in five other places. */
+
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--color-text-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
 }

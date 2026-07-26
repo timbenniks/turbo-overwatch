@@ -3,13 +3,16 @@ import Image from "next/image";
 import { getHeroPortrait } from "@/lib/hero-assets";
 import { formatTime, formatPercent } from "@/lib/format";
 import type { PlayerStatsSummary, StatsSummary } from "@/types/overfast";
+import { heroHref, type ViewMode } from "@/lib/view-mode";
 
 export function MostPlayed({
   stats,
   heroNames,
+  view,
 }: {
   stats: PlayerStatsSummary;
   heroNames: Map<string, string>;
+  view: ViewMode;
 }) {
   const top3 = Object.entries(stats.heroes)
     .sort(([, a], [, b]) => b.time_played - a.time_played)
@@ -24,6 +27,7 @@ export function MostPlayed({
             name={heroNames.get(key) ?? prettify(key)}
             stats={heroStats}
             rank={i + 1}
+            view={view}
           />
         </div>
       ))}
@@ -36,18 +40,20 @@ function HeroCardLarge({
   name,
   stats,
   rank,
+  view,
 }: {
   heroKey: string;
   name: string;
   stats: StatsSummary;
   rank: number;
+  view: ViewMode;
 }) {
   const portrait = getHeroPortrait(heroKey);
   const time = formatTime(stats.time_played);
 
   return (
     <Link
-      href={`/hero/${heroKey}`}
+      href={heroHref(heroKey, view)}
       prefetch
       className="relative block aspect-3/4 rounded-2xl overflow-hidden bg-surface-card border border-border-default group"
     >

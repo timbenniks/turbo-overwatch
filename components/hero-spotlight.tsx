@@ -3,6 +3,7 @@ import Image from "next/image";
 import { getHeroPortrait } from "@/lib/hero-assets";
 import { getHeroTheme } from "@/lib/hero-theme";
 import { formatTime, formatPercent } from "@/lib/format";
+import { heroHref } from '@/lib/view-mode';
 import type { ViewMode } from "@/lib/view-mode";
 import type { PlayerStatsSummary, Role } from "@/types/overfast";
 import { CountUp } from "@/components/count-up";
@@ -94,7 +95,7 @@ export function HeroSpotlight({
         </div>
 
         <Link
-          href={`/hero/${key}`}
+          href={heroHref(key, view)}
           prefetch
           className="press-tactile mt-10 inline-flex items-center gap-2 self-start px-6 py-3 bg-white text-surface-canvas font-bold uppercase tracking-[0.15em] text-[13px] rounded-full hover:bg-text-secondary transition-colors"
         >

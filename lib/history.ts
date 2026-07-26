@@ -8,6 +8,19 @@ import type {
   HistoryModeSnapshot,
 } from '@/types/history'
 import type { ViewMode } from './view-mode'
+import { DIVISIONS } from './format'
+import { rollingRate } from './rolling'
+import { currentSeason, seasonBoundaries, type SeasonSegment } from './seasons'
+import {
+  buildMetric,
+  splitWindows,
+  type Metric,
+  type MetricKey,
+} from './scorecard'
+
+// Sparkline smoothing window, in days. Matches the 7-day rolling window the
+// Trends charts use so the two tell the same story.
+const SPARK_WINDOW = 7
 
 const HISTORY_PATH = path.join(process.cwd(), 'data', 'history.json')
 
@@ -175,6 +188,11 @@ export type DailyDelta = {
   wins: number
   winrate: number
   kda: number
+  eliminations: number
+  assists: number
+  deaths: number
+  damage: number
+  healing: number
 }
 
 // Returns per-day deltas — i.e. games played *that day*, derived by subtracting
@@ -200,9 +218,11 @@ export async function getDailyDelta(view: ViewMode, days = 30): Promise<DailyDel
     const games = Math.max(0, curr.games_played - prev.games_played)
     const time = Math.max(0, curr.time_played - prev.time_played)
     const wins = Math.max(0, curr.games_won - prev.games_won)
-    const elims = curr.eliminations - prev.eliminations
-    const assists = curr.assists - prev.assists
-    const deaths = curr.deaths - prev.deaths
+    const elims = Math.max(0, curr.eliminations - prev.eliminations)
+    const assists = Math.max(0, curr.assists - prev.assists)
+    const deaths = Math.max(0, curr.deaths - prev.deaths)
+    const damage = Math.max(0, curr.damage - prev.damage)
+    const healing = Math.max(0, curr.healing - prev.healing)
     const winrate = games > 0 ? (wins / games) * 100 : 0
     const kda = deaths > 0 ? (elims + assists) / deaths : elims + assists
     out.push({
@@ -212,16 +232,159 @@ export async function getDailyDelta(view: ViewMode, days = 30): Promise<DailyDel
       wins,
       winrate,
       kda,
+      eliminations: elims,
+      assists,
+      deaths,
+      damage,
+      healing,
     })
   }
   return out
 }
 
+export type Scorecard = {
+  days: number
+  metrics: Record<MetricKey, Metric>
+}
+
+/**
+ * The last `days` compared against the `days` before them, plus a rolling
+ * sparkline series for each metric. Deltas are only ever between two windows
+ * that both contain games — see buildMetric.
+ */
+export async function getScorecard(view: ViewMode, days = 30): Promise<Scorecard | null> {
+  const deltas = await getDailyDelta(view, days * 2)
+  if (deltas.length === 0) return null
+
+  const { recent, previous } = splitWindows(deltas, days)
+
+  // Rolling series are computed over the full pair of windows so the earliest
+  // sparkline point still has a week of history behind it, then trimmed to the
+  // recent window.
+  const trim = <T,>(series: T[]) => series.slice(-recent.length)
+  const rolling = (nums: number[], dens: number[], scale = 1) =>
+    trim(rollingRate(nums, dens, SPARK_WINDOW).map((v) => (v === null ? null : v * scale)))
+
+  const games = deltas.map((d) => d.games_played)
+  const time = deltas.map((d) => d.time_played)
+
+  return {
+    days,
+    metrics: {
+      winrate: buildMetric(
+        'winrate',
+        recent,
+        previous,
+        rolling(
+          deltas.map((d) => d.wins),
+          games,
+          100
+        )
+      ),
+      kda: buildMetric(
+        'kda',
+        recent,
+        previous,
+        rolling(
+          deltas.map((d) => d.eliminations + d.assists),
+          deltas.map((d) => d.deaths)
+        )
+      ),
+      elimsPer10: buildMetric(
+        'elimsPer10',
+        recent,
+        previous,
+        rolling(
+          deltas.map((d) => d.eliminations),
+          time,
+          600
+        )
+      ),
+      damagePer10: buildMetric(
+        'damagePer10',
+        recent,
+        previous,
+        rolling(
+          deltas.map((d) => d.damage),
+          time,
+          600
+        )
+      ),
+    },
+  }
+}
+
+export type SeasonState = {
+  current: SeasonSegment | null
+  /** Dates where the season number changed — where rank lines must break. */
+  boundaries: string[]
+}
+
+/**
+ * Season segmentation of the competitive snapshots. Derived from the recorded
+ * season numbers, never from a hardcoded season calendar.
+ */
+export async function getSeasonState(days = 3650): Promise<SeasonState> {
+  const snaps = await getHistory()
+  const cutoff = new Date()
+  cutoff.setUTCDate(cutoff.getUTCDate() - days)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const points = snaps
+    .filter((s) => s.date >= cutoffStr && s.competitive?.ranks)
+    .map((s) => ({ date: s.date, season: s.competitive?.ranks?.season ?? null }))
+
+  return { current: currentSeason(points), boundaries: seasonBoundaries(points) }
+}
+
+/**
+ * Competitive totals accumulated since the current season was first seen.
+ * The API only reports lifetime competitive stats, so this window is something
+ * only the local snapshot history can provide.
+ */
+export async function getSeasonToDate(): Promise<{
+  season: SeasonSegment
+  games: number
+  wins: number
+  time: number
+  winrate: number | null
+} | null> {
+  const { current } = await getSeasonState()
+  if (!current) return null
+
+  const snaps = await getHistory()
+  const inSeason = snaps.filter((s) => s.date >= current.from && s.competitive)
+  const first = inSeason[0]?.competitive?.general
+  const last = inSeason[inSeason.length - 1]?.competitive?.general
+  if (!first || !last) return null
+
+  // The first snapshot of the season is the baseline, so a season that began
+  // before tracking still reports only what happened since it was seen.
+  const games = Math.max(0, last.games_played - first.games_played)
+  const wins = Math.max(0, last.games_won - first.games_won)
+  const time = Math.max(0, last.time_played - first.time_played)
+
+  return {
+    season: current,
+    games,
+    wins,
+    time,
+    winrate: games > 0 ? (wins / games) * 100 : null,
+  }
+}
+
+export type RoleStat = {
+  winrate: number
+  kda: number
+  games_played: number
+  time_played: number
+}
+
 export type RoleTrendPoint = {
   date: string
-  tank: { winrate: number; kda: number; games_played: number }
-  damage: { winrate: number; kda: number; games_played: number }
-  support: { winrate: number; kda: number; games_played: number }
+  tank: RoleStat
+  damage: RoleStat
+  support: RoleStat
 }
 
 export async function getRoleTrend(view: ViewMode, days = 90): Promise<RoleTrendPoint[]> {
@@ -245,15 +408,98 @@ export async function getRoleTrend(view: ViewMode, days = 90): Promise<RoleTrend
   return out
 }
 
-function pickRole(r: HistoryModeSnapshot['roles'][keyof HistoryModeSnapshot['roles']]) {
-  return { winrate: r.winrate, kda: r.kda, games_played: r.games_played }
+function pickRole(r: HistoryModeSnapshot['roles'][keyof HistoryModeSnapshot['roles']]): RoleStat {
+  return {
+    winrate: r.winrate,
+    kda: r.kda,
+    games_played: r.games_played,
+    time_played: r.time_played,
+  }
 }
 
-const DIVISION_ORDER = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'champion']
+export type RoleDeltaPoint = {
+  date: string
+  tank: number
+  damage: number
+  support: number
+}
+
+// Per-day time played per role, in seconds — derived by subtracting consecutive
+// cumulative role snapshots, same as getDailyDelta does for the general totals.
+export async function getRoleDelta(view: ViewMode, days = 90): Promise<RoleDeltaPoint[]> {
+  const roles = await getRoleTrend(view, days + 1)
+  const out: RoleDeltaPoint[] = []
+  for (let i = 1; i < roles.length; i++) {
+    const prev = roles[i - 1]
+    const curr = roles[i]
+    out.push({
+      date: curr.date,
+      tank: Math.max(0, curr.tank.time_played - prev.tank.time_played),
+      damage: Math.max(0, curr.damage.time_played - prev.damage.time_played),
+      support: Math.max(0, curr.support.time_played - prev.support.time_played),
+    })
+  }
+  return out
+}
+
+export type HeroMover = {
+  key: string
+  time_played: number
+  games_played: number
+  winrate: number | null
+}
+
+// Heroes ranked by time gained across the window — "what have I been playing
+// lately", as opposed to the cumulative all-time roster in RosterTable.
+export async function getHeroMovers(
+  view: ViewMode,
+  days = 30,
+  limit = 5
+): Promise<HeroMover[]> {
+  const snaps = await getHistory()
+  const cutoff = new Date()
+  cutoff.setUTCDate(cutoff.getUTCDate() - (days + 1))
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const modes: HistoryModeSnapshot[] = []
+  for (const snap of snaps) {
+    if (snap.date < cutoffStr) continue
+    const mode = pickForView(snap, view)
+    if (mode) modes.push(mode)
+  }
+  if (modes.length < 2) return []
+
+  const first = modes[0].heroes
+  const last = modes[modes.length - 1].heroes
+
+  const movers: HeroMover[] = []
+  for (const [key, end] of Object.entries(last)) {
+    const start = first[key]
+    const time = end.time_played - (start?.time_played ?? 0)
+    const games = end.games_played - (start?.games_played ?? 0)
+    if (time <= 0 && games <= 0) continue
+    // Wins are not stored per hero, so reconstruct them from the cumulative
+    // winrate at each end of the window.
+    const endWins = (end.winrate / 100) * end.games_played
+    const startWins = start ? (start.winrate / 100) * start.games_played : 0
+    movers.push({
+      key,
+      time_played: time,
+      games_played: games,
+      winrate: games > 0 ? clampPercent(((endWins - startWins) / games) * 100) : null,
+    })
+  }
+
+  return movers.sort((a, b) => b.time_played - a.time_played).slice(0, limit)
+}
+
+function clampPercent(v: number): number {
+  return Math.max(0, Math.min(100, v))
+}
 
 export function rankToScore(rank: { division: string; tier: number } | null | undefined): number | null {
   if (!rank) return null
-  const idx = DIVISION_ORDER.indexOf(rank.division.toLowerCase())
+  const idx = DIVISIONS.indexOf(rank.division.toLowerCase())
   if (idx < 0) return null
   // Tier 5 = bottom of division, tier 1 = top. Encode so higher = better.
   return idx * 5 + (6 - rank.tier)
@@ -261,6 +507,7 @@ export function rankToScore(rank: { division: string; tier: number } | null | un
 
 export type RankTrendPoint = {
   date: string
+  season: number | null
   tank: number | null
   damage: number | null
   support: number | null
@@ -282,6 +529,7 @@ export async function getRankTrend(days = 90): Promise<RankTrendPoint[]> {
     if (!ranks) continue
     out.push({
       date: snap.date,
+      season: typeof ranks.season === 'number' ? ranks.season : null,
       tank: rankToScore(ranks.tank),
       damage: rankToScore(ranks.damage),
       support: rankToScore(ranks.support),

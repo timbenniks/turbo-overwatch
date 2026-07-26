@@ -37,9 +37,13 @@ export type HistoryModeSnapshot = {
   roles: Record<Role, HistoryRoleStat>
   heroes: Record<string, HistoryHeroStat>
   ranks?: {
+    /** Competitive season this rank belonged to. Absent on snapshots taken
+     *  before seasons were recorded. */
+    season?: number | null
     tank: HistoryRank
     damage: HistoryRank
     support: HistoryRank
+    open?: HistoryRank
   }
 }
 

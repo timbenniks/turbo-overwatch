@@ -1,36 +1,5 @@
 import type { PlayerStatsSummary, StatsSummary } from '@/types/overfast'
 
-export type PercentileBand = 'top' | 'mid' | 'warn'
-export type PercentileResult = { band: PercentileBand; label: string }
-
-const BANDS: Record<string, [number, number, number]> = {
-  winrate: [45, 52, 58],
-  kda: [2.2, 3.2, 4.5],
-  elims_per_10: [16, 22, 28],
-  damage_per_10: [7000, 10000, 13000],
-  healing_per_10: [6000, 9000, 12000],
-  deaths_per_10: [9, 7, 5],
-}
-
-export function percentile(stat: keyof typeof BANDS, value: number): PercentileResult {
-  const [, midUpper, topFloor] = BANDS[stat]
-  const inverted = stat === 'deaths_per_10'
-
-  if (inverted) {
-    if (value <= topFloor) return { band: 'top', label: `Top ${rangeMid(5, 20)}%` }
-    if (value <= midUpper) return { band: 'mid', label: `Avg ${rangeMid(35, 65)}%` }
-    return { band: 'warn', label: `Bottom ${rangeMid(10, 25)}%` }
-  }
-
-  if (value >= topFloor) return { band: 'top', label: `Top ${rangeMid(5, 20)}%` }
-  if (value >= midUpper) return { band: 'mid', label: `Avg ${rangeMid(35, 65)}%` }
-  return { band: 'warn', label: `Bottom ${rangeMid(10, 25)}%` }
-}
-
-function rangeMid(lo: number, hi: number): number {
-  return lo + Math.floor((hi - lo) / 2)
-}
-
 export type RosterObservation = { heroKey: string; pill: string }
 
 export function observeRoster(stats: PlayerStatsSummary): RosterObservation[] {

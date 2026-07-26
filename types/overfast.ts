@@ -28,6 +28,9 @@ export type PlayerSummary = {
     pc: CompetitivePlatform
     console: CompetitivePlatform
   }
+  /** Unix seconds. When Blizzard last refreshed the profile — the true age of
+   *  every stat on the page. */
+  last_updated_at?: number | null
 }
 
 export type StatTotals = {
@@ -64,10 +67,42 @@ export type HeroBackground = {
   url: string
 }
 
+export type HeroAbilityVideo = {
+  thumbnail?: string
+  link?: {
+    mp4?: string
+    webm?: string
+  }
+}
+
 export type HeroAbility = {
   name: string
   description: string
   icon?: string
+  video?: HeroAbilityVideo
+}
+
+export type HeroPerk = {
+  name: string
+  description: string
+  icon?: string
+}
+
+export type HeroPerks = {
+  minor?: HeroPerk[]
+  major?: HeroPerk[]
+}
+
+export type HeroStoryChapter = {
+  title: string
+  content: string
+  picture?: string
+}
+
+export type HeroStory = {
+  summary?: string
+  media?: { type?: string; link?: string }
+  chapters?: HeroStoryChapter[]
 }
 
 export type HeroHitpoints = {
@@ -86,6 +121,8 @@ export type Hero = {
   hitpoints?: HeroHitpoints
   backgrounds: HeroBackground[]
   abilities: HeroAbility[]
+  perks?: HeroPerks
+  story?: HeroStory
 }
 
 export type HeroListItem = {

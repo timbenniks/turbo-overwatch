@@ -94,9 +94,15 @@ function buildModeSnapshot(stats, ranks) {
   }
   if (ranks) {
     snap.ranks = {
+      // The season number is the whole reason this is worth storing: OverFast
+      // has no per-season stats endpoint, so a season boundary is only ever
+      // knowable from the day it changed here. Miss the day, lose it forever.
+      season: typeof ranks.season === 'number' ? ranks.season : null,
       tank: condenseRank(ranks.tank),
       damage: condenseRank(ranks.damage),
       support: condenseRank(ranks.support),
+      // Recorded but not yet rendered — same unrecoverable-if-missed argument.
+      open: condenseRank(ranks.open),
     }
   }
   return snap

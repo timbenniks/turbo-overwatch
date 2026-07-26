@@ -32,15 +32,21 @@ export function normalisePlayerId(id: string): string {
 
 const PLAYER_DATA_LIFE = { stale: 60, revalidate: 3600, expire: 86400 }
 
-async function fetchWithRetry(url: string, attempts = 3): Promise<Response> {
+async function fetchWithRetry(url: string, attempts = 5): Promise<Response> {
   let last: Response | null = null
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(url)
     if (res.ok || res.status === 404 || res.status === 403) return res
     last = res
     if (res.status !== 429 && res.status < 500) return res
-    const delay = 400 * Math.pow(2, i) + Math.random() * 200
-    await new Promise((r) => setTimeout(r, delay))
+    // A production build prerenders with 8 parallel workers, which trips
+    // OverFast's rate limit in bursts. It tells us how long to wait — obey it
+    // rather than guessing, or the build fails on a transient 429.
+    const retryAfter = Number(res.headers.get('retry-after'))
+    const delay = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000 + 250
+      : 500 * Math.pow(2, i) + Math.random() * 250
+    await new Promise((r) => setTimeout(r, Math.min(delay, 10_000)))
   }
   return last!
 }
@@ -86,7 +92,10 @@ export async function getHero(key: string): Promise<Hero | null> {
   cacheTag(`hero-${key}`, 'heroes')
 
   const res = await fetchWithRetry(`${BASE_URL}/heroes/${key}`)
-  if (res.status === 404) return null
+  // The hero key comes straight from the URL, and OverFast validates it against
+  // an enum — so an unknown hero is a 422, not a 404. Both mean "no such hero";
+  // throwing instead logged an unhandled error on every bad /hero/... URL.
+  if (res.status === 404 || res.status === 422) return null
   if (!res.ok) throw new OverfastError(res.status, await res.text())
   return res.json()
 }

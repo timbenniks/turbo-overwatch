@@ -1,10 +1,15 @@
+import { notFound } from 'next/navigation'
 import { SectionHeader } from '@/components/section-header'
-import { StatCard } from '@/components/stat-card'
-import { PercentileCallout } from '@/components/percentile-callout'
+import { StatTile, StatTileRow } from '@/components/stats/stat-tile'
+import { StatTable } from '@/components/stats/stat-table'
 import { RolePill } from '@/components/role-pill'
 import { formatTime, formatPercent, formatNumber, formatKda } from '@/lib/format'
 
 export default function PrimitivesDemo() {
+  // Internal showcase — prerendered into the production build otherwise,
+  // where it is a public URL nobody intended to publish.
+  if (process.env.NODE_ENV === 'production') notFound()
+
   const time = formatTime(170_000)
 
   return (
@@ -26,18 +31,28 @@ export default function PrimitivesDemo() {
       </section>
 
       <section>
-        <SectionHeader>stat cards</SectionHeader>
-        <div className="grid grid-cols-4 gap-3">
-          <StatCard label="TIME" value="47h 12" unit="m" />
-          <StatCard
-            label="WIN RATE"
-            value="58"
-            unit="%"
-            subtitle={<PercentileCallout result={{ band: 'top', label: 'Top 12%' }} />}
+        <SectionHeader>stat tiles</SectionHeader>
+        <StatTileRow>
+          <StatTile label="Time" value="47h 12" unit="m" note="3rd most played" />
+          <StatTile
+            label="Win rate"
+            value="58%"
+            delta={{ value: 4.2, format: (v) => `${v.toFixed(1)} pts`, period: 'vs prev 30d' }}
+            spark={[41, 44, 43, 48, 52, null, 55, 58, 57, 61]}
+            note="61% last 30d"
           />
-          <StatCard label="KDA" value="3.42" />
-          <StatCard label="GAMES" value="312" subtitle="182W · 130L" />
-        </div>
+          <StatTile
+            label="Deaths / 10m"
+            value="6.97"
+            delta={{
+              value: 0.4,
+              format: (v) => v.toFixed(2),
+              period: 'vs prev 30d',
+              higherIsBetter: false,
+            }}
+          />
+          <StatTile label="Healing / 10m" value={null} note="no data" />
+        </StatTileRow>
       </section>
 
       <section>
@@ -50,13 +65,27 @@ export default function PrimitivesDemo() {
       </section>
 
       <section>
-        <SectionHeader>percentile callouts</SectionHeader>
-        <div className="flex gap-6 items-center">
-          <PercentileCallout result={{ band: 'top', label: 'Top 12%' }} />
-          <PercentileCallout result={{ band: 'mid', label: 'Avg 50%' }} />
-          <PercentileCallout result={{ band: 'warn', label: 'Bottom 17%' }} />
-        </div>
+        <SectionHeader>stat table</SectionHeader>
+        <StatTable
+          summary="All career totals"
+          secondaryHeading="Per match"
+          groups={[
+            {
+              label: 'Combat',
+              rows: [
+                { label: 'Final blows', value: '1,461', secondary: '5.1 / match' },
+                { label: 'Solo kills', value: '289', secondary: '1.0 / match' },
+                { label: 'Multikills', value: '62', secondary: '0.2 / match' },
+              ],
+            },
+            {
+              label: 'Assists',
+              rows: [{ label: 'Healing done', value: '315.8k', secondary: '1.1k / match' }],
+            },
+          ]}
+        />
       </section>
+
     </main>
   )
 }

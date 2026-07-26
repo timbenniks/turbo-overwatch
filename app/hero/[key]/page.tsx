@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import {
   getPlayerStatsBreakdown,
   selectStatsForView,
   getHero,
   getHeroList,
+  getGlobalHeroStats,
 } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { parseViewMode } from '@/lib/view-mode'
@@ -12,17 +14,49 @@ import type { ViewMode } from '@/lib/view-mode'
 import { getHeroTheme } from '@/lib/hero-theme'
 import { getHeroPortrait } from '@/lib/hero-assets'
 import { HeroBanner } from '@/components/hero-banner'
+import { Breadcrumb } from '@/components/breadcrumb'
 import { HeroIdentityCard } from '@/components/hero-identity-card'
 import { HeroAbilities } from '@/components/hero-abilities'
+import { HeroPerks } from '@/components/hero-perks'
+import { HeroStory } from '@/components/hero-story'
 import { HeroSpecificStats } from '@/components/hero-specific-stats'
 import { HeadlineStatTrio } from '@/components/headline-stat-trio'
 import { CombatSignature } from '@/components/combat-signature'
 import { RosterContextChart } from '@/components/roster-context-chart'
 import { SectionHeader } from '@/components/section-header'
 import { BestMoments } from '@/components/best-moments'
-import { BestMomentsSkeleton, CareerDetailSkeleton } from '@/components/skeletons'
+import { HeroTrend } from '@/components/hero-trend'
+import {
+  BestMomentsSkeleton,
+  CareerDetailSkeleton,
+  ChartGridSkeleton,
+} from '@/components/skeletons'
 import { Crosshair, ListTree } from '@/components/icons'
 import { Reveal } from '@/components/reveal'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ key: string }>
+}): Promise<Metadata> {
+  const { key } = await params
+  const hero = await getHero(key)
+  const name = hero?.name ?? key.replace(/-/g, ' ')
+  const title = `${name} · Overwatch dashboard`
+  const description = hero?.description
+    ? `${name} — ${hero.role}. ${hero.description}`
+    : `${name} stats, abilities and history.`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: hero?.portrait ? [{ url: hero.portrait }] : undefined,
+    },
+  }
+}
 
 export default function HeroDetailPage({
   params,
@@ -51,11 +85,16 @@ async function HeroContent({
   const { mode } = await searchParams
   const view: ViewMode = parseViewMode(mode)
 
-  const [breakdown, hero, heroList] = await Promise.all([
+  // Global stats are reported per gamemode; 'all' has no global equivalent, so
+  // it borrows quick play and the label says so.
+  const globalMode = view === 'competitive' ? 'competitive' : 'quickplay'
+  const [breakdown, hero, heroList, globalStats] = await Promise.all([
     getPlayerStatsBreakdown(PLAYER_ID),
     getHero(key),
     getHeroList(),
+    getGlobalHeroStats({ gamemode: globalMode }),
   ])
+  const globalWinrate = globalStats.find((h) => h.hero === key)?.winrate ?? null
   const stats = selectStatsForView(breakdown, view)
 
   if (!hero && !getHeroPortrait(key)) notFound()
@@ -69,8 +108,15 @@ async function HeroContent({
   const displayName = hero?.name ?? heroNames[key] ?? key.replace(/-/g, ' ')
 
   return (
-    <>
-      <HeroBanner heroKey={key} hero={hero} />
+    // Mode accent for the hero page too, so navigating in from a mode keeps its
+    // identity. See globals.css.
+    <div data-mode={view}>
+      {/* Positioned container so the breadcrumb anchors to the banner rather
+          than the document, where it would sit behind the sticky header. */}
+      <div className="relative">
+        <HeroBanner heroKey={key} hero={hero} />
+        <Breadcrumb heroName={displayName} view={view} />
+      </div>
 
       <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
         {heroStats ? (
@@ -78,6 +124,8 @@ async function HeroContent({
             heroKey={key}
             heroStats={heroStats}
             allHeroes={stats!.heroes}
+            globalWinrate={globalWinrate}
+            globalLabel={`vs global ${globalMode === 'competitive' ? 'comp' : 'QP'}`}
           />
         ) : (
           <NeverPlayedNotice heroName={displayName} />
@@ -97,6 +145,12 @@ async function HeroContent({
           </Reveal>
         )}
 
+        {hero?.perks && (
+          <Reveal delay={60}>
+            <HeroPerks perks={hero.perks} />
+          </Reveal>
+        )}
+
         {heroStats && generalStats && stats && (
           <>
             <Reveal as="section" delay={60}>
@@ -107,6 +161,12 @@ async function HeroContent({
             <Reveal delay={60}>
               <Suspense fallback={<CareerDetailSkeleton />}>
                 <HeroSpecificStats heroKey={key} view={view} />
+              </Suspense>
+            </Reveal>
+
+            <Reveal delay={60}>
+              <Suspense fallback={<ChartGridSkeleton />}>
+                <HeroTrend heroKey={key} heroName={displayName} view={view} />
               </Suspense>
             </Reveal>
 
@@ -129,8 +189,14 @@ async function HeroContent({
             </Reveal>
           </>
         )}
+
+        {hero?.story && (
+          <Reveal delay={60}>
+            <HeroStory story={hero.story} heroName={displayName} />
+          </Reveal>
+        )}
       </div>
-    </>
+    </div>
   )
 }
 

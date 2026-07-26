@@ -1,328 +1,372 @@
 import {
   getTrend,
   getDailyDelta,
-  getRoleTrend,
+  getRoleDelta,
   getRankTrend,
+  getHeroMovers,
+  getSeasonState,
 } from '@/lib/history'
-import type { ViewMode } from '@/lib/view-mode'
-import { LineChart, type LineSeries } from '@/components/charts/line-chart'
-import { BarChart, type BarDatum } from '@/components/charts/bar-chart'
+import { rollingRate, rollingMean, weekBuckets } from '@/lib/rolling'
+import { heroHref, type ViewMode } from '@/lib/view-mode'
+import {
+  TimeSeriesChart,
+  StackedBarChart,
+  PercentAreaChart,
+  type ChartRow,
+  type SeriesSpec,
+} from '@/components/charts'
+import { ActivityHeatmap } from '@/components/charts/activity-heatmap'
+import { BarRows, type BarRow } from '@/components/charts/bar-rows'
+import { ChartCard, ChartEmpty } from '@/components/charts/chart-card'
 import { SectionHeader } from '@/components/section-header'
-import { TrendModeToggle } from '@/components/trend-mode-toggle'
-import type { TrendMode } from '@/lib/trend-mode'
+import { SegmentedNav } from '@/components/segmented-nav'
 import { TrendingUp } from '@/components/icons'
-import { formatPercent, formatKda } from '@/lib/format'
+import {
+  DEFAULT_TREND_RANGE,
+  TREND_RANGES,
+  rangeToDays,
+  type TrendRange,
+} from '@/lib/trend-range'
+import { divisionLabel, formatHours, formatTime } from '@/lib/format'
+import { segmentIndices } from '@/lib/seasons'
 
-const ROLE_COLORS = {
-  tank: 'var(--color-role-tank)',
-  damage: 'var(--color-role-damage)',
-  support: 'var(--color-role-support)',
-}
+const ROLES: SeriesSpec[] = [
+  { key: 'tank', label: 'Tank', color: 'var(--color-role-tank)' },
+  { key: 'damage', label: 'Damage', color: 'var(--color-role-damage)' },
+  { key: 'support', label: 'Support', color: 'var(--color-role-support)' },
+]
 
-const DIVISIONS = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'champion']
+// Wins wear the mode accent; losses stay neutral. Role colours are untouched —
+// they encode role, which is a different dimension from mode.
+const WIN_LOSS: SeriesSpec[] = [
+  { key: 'wins', label: 'Wins', color: 'var(--color-accent)' },
+  { key: 'losses', label: 'Losses', color: 'var(--color-border-strong)' },
+]
 
-function formatDateLabel(iso: string): string {
-  // 2026-05-18 -> "MAY 18"
-  const [, m, d] = iso.split('-')
-  const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Number(m) - 1] ?? ''
-  return `${month} ${Number(d)}`
-}
-
-function formatRankScore(score: number): string {
-  const idx = Math.floor(score / 5)
-  const tier = 6 - (score % 5)
-  const div = DIVISIONS[idx]
-  if (!div) return ''
-  return `${div.slice(0, 3).toUpperCase()}${tier}`
-}
+const ROLLING_WINDOW = 7
 
 export async function TrendsSection({
   view,
-  trendMode,
+  range,
 }: {
   view: ViewMode
-  trendMode: TrendMode
+  range: TrendRange
 }) {
-  const [cumulative, deltas, roles, ranks] = await Promise.all([
-    getTrend(view, 90),
-    getDailyDelta(view, 90),
-    getRoleTrend(view, 90),
-    getRankTrend(90),
+  const days = rangeToDays(range)
+
+  const [cumulative, deltas, roleDeltas, ranks, movers, seasons] = await Promise.all([
+    getTrend(view, days),
+    getDailyDelta(view, days),
+    getRoleDelta(view, days),
+    // Rank is competitive-only; a ladder card under a quickplay filter is a lie.
+    view === 'quickplay' ? Promise.resolve([]) : getRankTrend(days),
+    getHeroMovers(view, days, 6),
+    getSeasonState(days),
   ])
 
-  if (cumulative.length === 0) {
+  const header = (
+    <div className="flex flex-wrap items-end justify-between gap-3 mb-4 md:mb-6">
+      <SectionHeader icon={<TrendingUp size={22} />}>Trends</SectionHeader>
+      <SegmentedNav
+        items={TREND_RANGES}
+        current={range}
+        param="range"
+        defaultKey={DEFAULT_TREND_RANGE}
+        hash="trends"
+        label="Trend range"
+      />
+    </div>
+  )
+
+  if (deltas.length === 0) {
     return (
       <section id="trends" className="scroll-mt-24">
-        <SectionHeader icon={<TrendingUp size={22} />}>Trends</SectionHeader>
-        <EmptyState message="No snapshots yet. The daily workflow will populate this section." />
+        {header}
+        <div className="bg-surface-card border border-border-default rounded-2xl p-8">
+          <ChartEmpty
+            message={
+              cumulative.length > 0
+                ? 'Only one snapshot in this range — pick a longer range.'
+                : 'No snapshots yet. The daily workflow will populate this section.'
+            }
+          />
+        </div>
       </section>
     )
   }
 
-  const useDelta = trendMode === 'delta'
-  const series = useDelta ? deltas : cumulative
-  const xLabels = series.map((p) => formatDateLabel(p.date))
-  const xIndices = series.map((_, i) => i)
+  /* ── rolling form (winrate & KDA) ──────────────────────────────────────── */
 
-  const winrateSeries: LineSeries[] = [
-    {
-      label: useDelta ? "Day's winrate" : 'Career winrate',
-      color: 'var(--color-text-primary)',
-      points: xIndices.map((x, i) => ({ x, y: series[i]?.winrate ?? null })),
-    },
-  ]
+  const winrate = rollingRate(
+    deltas.map((d) => d.wins),
+    deltas.map((d) => d.games_played),
+    ROLLING_WINDOW
+  )
+  const kda = rollingMean(
+    deltas.map((d) => (d.games_played > 0 ? d.kda : null)),
+    ROLLING_WINDOW
+  )
 
-  const kdaSeries: LineSeries[] = [
-    {
-      label: useDelta ? "Day's KDA" : 'Career KDA',
-      color: 'var(--color-text-primary)',
-      points: xIndices.map((x, i) => ({ x, y: series[i]?.kda ?? null })),
-    },
-  ]
-
-  // Per-role winrate: cumulative pulls from roles[]; delta requires more work.
-  // For delta view, derive per-role from consecutive role snapshots.
-  const roleWinrateSeries: LineSeries[] = useDelta
-    ? buildRoleDeltaSeries(roles, 'winrate')
-    : [
-        {
-          label: 'Tank',
-          color: ROLE_COLORS.tank,
-          points: roles.map((p, i) => ({ x: i, y: p.tank.games_played > 0 ? p.tank.winrate : null })),
-        },
-        {
-          label: 'Damage',
-          color: ROLE_COLORS.damage,
-          points: roles.map((p, i) => ({ x: i, y: p.damage.games_played > 0 ? p.damage.winrate : null })),
-        },
-        {
-          label: 'Support',
-          color: ROLE_COLORS.support,
-          points: roles.map((p, i) => ({ x: i, y: p.support.games_played > 0 ? p.support.winrate : null })),
-        },
-      ]
-  const roleXLabels = roles.map((p) => formatDateLabel(p.date))
-
-  // Volume bars: only meaningful as deltas. If cumulative selected, show
-  // running games_played as bars but still meaningful as totals.
-  const volumeData: BarDatum[] = useDelta
-    ? deltas.map((d) => ({
-        label: formatDateLabel(d.date),
-        segments: [
-          { value: d.wins, color: 'var(--color-text-primary)', label: 'Wins' },
-          { value: Math.max(0, d.games_played - d.wins), color: 'var(--color-border-strong)', label: 'Losses' },
-        ],
-      }))
-    : cumulative.map((d) => {
-        const wins = Math.round((d.winrate / 100) * d.games_played)
-        return {
-          label: formatDateLabel(d.date),
-          segments: [
-            { value: wins, color: 'var(--color-text-primary)', label: 'Wins' },
-            { value: Math.max(0, d.games_played - wins), color: 'var(--color-border-strong)', label: 'Losses' },
-          ],
-        }
-      })
-
-  // Time played bars
-  const timeData: BarDatum[] = (useDelta ? deltas : cumulative).map((d) => ({
-    label: formatDateLabel(d.date),
-    segments: [
-      { value: d.time_played / 3600, color: 'var(--color-text-primary)' },
-    ],
+  const formRows: ChartRow[] = deltas.map((d, i) => ({
+    date: d.date,
+    // rollingRate returns a ratio; the axis is a percentage.
+    winrate: winrate[i] === null ? null : winrate[i]! * 100,
+    kda: kda[i],
   }))
 
-  // Rank progression
-  const rankSeries: LineSeries[] =
-    ranks.length > 0
-      ? [
-          {
-            label: 'Tank',
-            color: ROLE_COLORS.tank,
-            points: ranks.map((p, i) => ({ x: i, y: p.tank })),
-          },
-          {
-            label: 'Damage',
-            color: ROLE_COLORS.damage,
-            points: ranks.map((p, i) => ({ x: i, y: p.damage })),
-          },
-          {
-            label: 'Support',
-            color: ROLE_COLORS.support,
-            points: ranks.map((p, i) => ({ x: i, y: p.support })),
-          },
-        ]
-      : []
-  const rankXLabels = ranks.map((p) => formatDateLabel(p.date))
-  const rankYs = rankSeries.flatMap((s) => s.points.map((p) => p.y).filter((v): v is number => v !== null))
-  const rankMin = rankYs.length ? Math.max(0, Math.min(...rankYs) - 2) : 0
-  const rankMax = rankYs.length ? Math.max(...rankYs) + 2 : 40
+  const careerKda = cumulative[cumulative.length - 1]?.kda ?? null
 
-  const totalSnapshots = cumulative.length
-  const isThin = totalSnapshots < 3
+  /* ── weekly volume ─────────────────────────────────────────────────────── */
+
+  const volumeRows: ChartRow[] = weekBuckets(deltas).map((b) => {
+    const games = b.points.reduce((a, p) => a + p.games_played, 0)
+    const wins = b.points.reduce((a, p) => a + p.wins, 0)
+    return { date: b.week, wins, losses: Math.max(0, games - wins) }
+  })
+
+  const totalGames = deltas.reduce((a, d) => a + d.games_played, 0)
+  const totalWins = deltas.reduce((a, d) => a + d.wins, 0)
+  const totalTime = deltas.reduce((a, d) => a + d.time_played, 0)
+
+  /* ── weekly role mix ───────────────────────────────────────────────────── */
+
+  const roleRows: ChartRow[] = weekBuckets(roleDeltas)
+    .map((b) => ({
+      date: b.week,
+      tank: b.points.reduce((a, p) => a + p.tank, 0),
+      damage: b.points.reduce((a, p) => a + p.damage, 0),
+      support: b.points.reduce((a, p) => a + p.support, 0),
+    }))
+    // A week with no play would divide by zero in a 100%-stacked area.
+    .filter((r) => (r.tank as number) + (r.damage as number) + (r.support as number) > 0)
+
+  /* ── rank ladder ───────────────────────────────────────────────────────── */
+
+  // One line per role per season segment. An Overwatch season opens with a soft
+  // reset that drops you one to two divisions, so joining across a boundary
+  // would draw a fall the player never took. Separate dataKeys give a true
+  // break without inventing null rows on the axis.
+  //
+  // Segments advance only on an *observed* season change: snapshots taken before
+  // seasons were recorded stay joined to the run that follows, because breaking
+  // there would assert a rollover nobody saw.
+  const rowSegments = segmentIndices(
+    ranks.map((p) => p.date),
+    seasons.boundaries
+  )
+  const segmentIds = Array.from(new Set(rowSegments))
+
+  const rankRows: ChartRow[] = ranks.map((p, i) => {
+    const row: ChartRow = { date: p.date }
+    for (const r of ROLES) {
+      const score = p[r.key as 'tank' | 'damage' | 'support']
+      for (const g of segmentIds) {
+        row[`${r.key}_g${g}`] = g === rowSegments[i] ? score : null
+      }
+    }
+    return row
+  })
+
+  const rankSeries: SeriesSpec[] = []
+  for (const r of ROLES) {
+    for (const g of segmentIds) {
+      const key = `${r.key}_g${g}`
+      if (!rankRows.some((row) => typeof row[key] === 'number')) continue
+      // Every segment of a role shares the role's name and colour, so the
+      // tooltip and legend read by role, not by role-and-season.
+      rankSeries.push({ key, label: r.label, color: r.color })
+    }
+  }
+  // Legend shows each role once, however many season segments it spans.
+  const rankLegend = ROLES.filter((r) => rankSeries.some((s) => s.label === r.label))
+  const rankScores = rankRows.flatMap((r) =>
+    rankSeries.map((s) => r[s.key]).filter((v): v is number => typeof v === 'number')
+  )
+  const seasonMarkers = seasons.boundaries
+    .filter((b) => ranks.some((p) => p.date === b))
+    .map((b) => ({
+      x: b,
+      label: `S${ranks.find((p) => p.date === b)?.season ?? ''}`,
+    }))
+  const rankMin = rankScores.length ? Math.min(...rankScores) - 2 : 0
+  const rankMax = rankScores.length ? Math.max(...rankScores) + 2 : 10
+  const rankTicks: number[] = []
+  const rankBands: { from: number; to: number; label: string }[] = []
+  for (let idx = 0; idx < 8; idx++) {
+    const from = idx * 5 + 0.5
+    const to = idx * 5 + 5.5
+    if (to < rankMin || from > rankMax) continue
+    rankBands.push({ from, to, label: divisionLabel(idx) })
+    // Every tier when the span is narrow; only division ends once it grows,
+    // otherwise the axis turns into a wall of labels.
+    const tiers =
+      rankMax - rankMin <= 12
+        ? [1, 2, 3, 4, 5].map((t) => idx * 5 + t)
+        : [idx * 5 + 1, idx * 5 + 5]
+    for (const tier of tiers) {
+      if (tier >= rankMin && tier <= rankMax) rankTicks.push(tier)
+    }
+  }
+
+  /* ── hero movers ───────────────────────────────────────────────────────── */
+
+  const moverRows: BarRow[] = movers.map((m) => {
+    const t = formatTime(m.time_played)
+    return {
+      key: m.key,
+      label: m.key.replace(/-/g, ' '),
+      value: m.time_played,
+      valueLabel: `${t.value}${t.unit}`,
+      note: m.winrate !== null ? `${Math.round(m.winrate)}% wr` : undefined,
+      href: heroHref(m.key, view),
+    }
+  })
+
+  // With no games in the range, every rate chart is an empty axis and every
+  // ranking is an empty list. One sentence beats five blank cards; the heatmap
+  // and the ladder still say something, so they stay.
+  const noActivity = totalGames === 0
 
   return (
     <section id="trends" className="scroll-mt-24">
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-4 md:mb-6">
-        <SectionHeader icon={<TrendingUp size={22} />}>Trends</SectionHeader>
-        <TrendModeToggle current={trendMode} />
-      </div>
+      {header}
 
-      {isThin && (
-        <p className="text-[11px] md:text-[12px] uppercase tracking-widest text-text-tertiary font-bold mb-4">
-          {totalSnapshots} snapshot{totalSnapshots === 1 ? '' : 's'} so far — charts will get more interesting as the daily workflow runs.
-        </p>
+      {noActivity && (
+        <div className="bg-surface-card border border-border-default rounded-2xl p-5 md:p-6 mb-3 md:mb-4">
+          <p className="text-[12px] md:text-[13px] uppercase tracking-widest text-text-secondary font-bold">
+            No {view === 'all' ? '' : `${view === 'quickplay' ? 'quick play' : 'competitive'} `}
+            games in this range
+            {range !== 'all' && ' — try a longer one'}.
+          </p>
+          {rankSeries.length > 0 && (
+            <p className="text-[10px] md:text-[11px] uppercase tracking-widest text-text-tertiary font-bold mt-2">
+              Rank is still shown below: it holds between seasons even when you
+              stop playing.
+            </p>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
         <ChartCard
-          title="Winrate"
-          subtitle={useDelta ? 'Per-day winrate' : 'Career winrate'}
+          title="Activity"
+          subtitle="Games per day"
+          className="lg:col-span-2"
+          footnote={`${totalGames} games · ${formatHours(totalTime)} · ${totalWins} won in this range. Shade is relative to the busiest day.`}
         >
-          <LineChart
-            series={winrateSeries}
-            xLabels={xLabels}
-            yMin={0}
-            yMax={100}
-            yFormat={formatPercent}
-          />
+          <ActivityHeatmap days={deltas} />
         </ChartCard>
 
+        {!noActivity && (
+        <ChartCard
+          title="Form"
+          subtitle={`${ROLLING_WINDOW}-day rolling winrate`}
+          footnote="Wins ÷ games over the trailing week, so a single game can't swing the line. Gaps are weeks with no games."
+        >
+          <TimeSeriesChart
+            data={formRows}
+            series={[
+              { key: 'winrate', label: 'Winrate', color: 'var(--color-accent)' },
+            ]}
+            format="percent"
+            yDomain={[0, 100]}
+            yTicks={[0, 25, 50, 75, 100]}
+            reference={{ value: 50, label: 'Even' }}
+          />
+        </ChartCard>
+        )}
+
+        {!noActivity && (
         <ChartCard
           title="KDA"
-          subtitle={useDelta ? "Per-day KDA" : 'Career KDA'}
+          subtitle={`${ROLLING_WINDOW}-day rolling KDA`}
+          footnote={
+            careerKda !== null
+              ? 'Dashed line is the career average for this mode.'
+              : undefined
+          }
         >
-          <LineChart
-            series={kdaSeries}
-            xLabels={xLabels}
-            yMin={0}
-            yFormat={formatKda}
+          <TimeSeriesChart
+            data={formRows}
+            series={[{ key: 'kda', label: 'KDA', color: 'var(--color-accent)' }]}
+            format="kda"
+            reference={
+              careerKda !== null ? { value: careerKda, label: 'Career' } : undefined
+            }
           />
         </ChartCard>
+        )}
 
+        {!noActivity && (
         <ChartCard
-          title="Winrate by role"
-          subtitle={useDelta ? "Per-day, per role" : 'Career, per role'}
+          title="Volume"
+          subtitle="Wins vs losses, weekly"
+          legend={WIN_LOSS}
+          footnote="Grouped by week — over half of all days have no games at all."
         >
-          <LineChart
-            series={roleWinrateSeries}
-            xLabels={roleXLabels}
-            yMin={0}
-            yMax={100}
-            yFormat={formatPercent}
+          <StackedBarChart
+            data={volumeRows}
+            series={WIN_LOSS}
+            format="count"
+            totalFormat="count"
           />
         </ChartCard>
+        )}
 
+        {!noActivity && (
         <ChartCard
-          title="Games played"
-          subtitle={useDelta ? 'Wins vs losses, per day' : 'Career wins vs losses'}
+          title="Role mix"
+          subtitle="Share of time played, weekly"
+          legend={ROLES}
+          footnote="Hover for hours per role."
         >
-          <BarChart
-            data={volumeData}
-            yFormat={(v) => String(Math.round(v))}
-            legend={[
-              { label: 'Wins', color: 'var(--color-text-primary)' },
-              { label: 'Losses', color: 'var(--color-border-strong)' },
-            ]}
-          />
+          {roleRows.length > 0 ? (
+            <PercentAreaChart data={roleRows} series={ROLES} format="hours" />
+          ) : (
+            <ChartEmpty message="No role time recorded in this range." />
+          )}
         </ChartCard>
-
-        <ChartCard
-          title="Time played"
-          subtitle={useDelta ? 'Hours per day' : 'Career hours'}
-        >
-          <BarChart
-            data={timeData}
-            yFormat={(v) => `${v.toFixed(1)}h`}
-          />
-        </ChartCard>
+        )}
 
         {rankSeries.length > 0 && (
           <ChartCard
             title="Rank"
-            subtitle="Competitive division progression"
+            subtitle="Competitive ladder"
+            legend={rankLegend}
+            footnote={
+              seasonMarkers.length > 0
+                ? 'Stepped on purpose — rank only moves when a snapshot records it. Lines break at a season change: a new season soft-resets your placement.'
+                : 'Stepped on purpose — rank only moves when a snapshot records a new division.'
+            }
           >
-            <LineChart
+            <TimeSeriesChart
+              data={rankRows}
               series={rankSeries}
-              xLabels={rankXLabels}
-              yMin={rankMin}
-              yMax={rankMax}
-              yFormat={(v) => formatRankScore(Math.round(v))}
-              ySteps={3}
+              format="rank"
+              yDomain={[rankMin, rankMax]}
+              yTicks={rankTicks}
+              bands={rankBands}
+              markers={seasonMarkers}
+              step
+              endLabels
             />
+          </ChartCard>
+        )}
+
+        {!noActivity && (
+          <ChartCard
+            title="Recently played"
+            subtitle="Time added in this range"
+            footnote="Ranked by time gained between the first and last snapshot in range."
+          >
+            {moverRows.length > 0 ? (
+              <BarRows rows={moverRows} />
+            ) : (
+              <ChartEmpty message="No hero time added in this range." />
+            )}
           </ChartCard>
         )}
       </div>
     </section>
   )
 }
-
-function ChartCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string
-  subtitle: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="bg-surface-card border border-border-default rounded-2xl p-4 md:p-6">
-      <div className="mb-3 md:mb-4">
-        <div className="text-[11px] md:text-[12px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
-          {subtitle}
-        </div>
-        <div className="text-[18px] md:text-[22px] uppercase font-black tracking-tight leading-none mt-1">
-          {title}
-        </div>
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="bg-surface-card border border-border-default rounded-2xl p-8 text-center">
-      <p className="text-text-secondary uppercase tracking-widest text-[12px] font-bold">{message}</p>
-    </div>
-  )
-}
-
-function buildRoleDeltaSeries(
-  roles: Awaited<ReturnType<typeof getRoleTrend>>,
-  _key: 'winrate'
-): LineSeries[] {
-  // Reconstruct per-day winrate from cumulative role snapshots.
-  // wins_t = round((winrate_t / 100) * games_t). Daily wins = wins_t - wins_{t-1}.
-  const compute = (
-    pick: (r: (typeof roles)[number]) => { winrate: number; games_played: number }
-  ): { date: string; value: number | null }[] => {
-    const out: { date: string; value: number | null }[] = []
-    for (let i = 1; i < roles.length; i++) {
-      const prev = pick(roles[i - 1])
-      const curr = pick(roles[i])
-      const games = curr.games_played - prev.games_played
-      if (games <= 0) {
-        out.push({ date: roles[i].date, value: null })
-        continue
-      }
-      const wins =
-        Math.round((curr.winrate / 100) * curr.games_played) -
-        Math.round((prev.winrate / 100) * prev.games_played)
-      out.push({ date: roles[i].date, value: Math.max(0, Math.min(100, (wins / games) * 100)) })
-    }
-    return out
-  }
-
-  const tank = compute((r) => r.tank)
-  const damage = compute((r) => r.damage)
-  const support = compute((r) => r.support)
-
-  return [
-    { label: 'Tank', color: ROLE_COLORS.tank, points: tank.map((p, i) => ({ x: i, y: p.value })) },
-    { label: 'Damage', color: ROLE_COLORS.damage, points: damage.map((p, i) => ({ x: i, y: p.value })) },
-    { label: 'Support', color: ROLE_COLORS.support, points: support.map((p, i) => ({ x: i, y: p.value })) },
-  ]
-}
-

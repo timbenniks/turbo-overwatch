@@ -88,15 +88,6 @@ export function Trophy({ className = '', size = 16 }: IconProps) {
   )
 }
 
-export function Clock({ className = '', size = 16 }: IconProps) {
-  return (
-    <svg {...base(size, className)}>
-      <circle cx="12" cy="12" r="9" />
-      <polyline points="12 7 12 12 15 14" />
-    </svg>
-  )
-}
-
 export function Shield({ className = '', size = 16 }: IconProps) {
   return (
     <svg {...base(size, className)}>
@@ -118,17 +109,6 @@ export function Sparkles({ className = '', size = 16 }: IconProps) {
     <svg {...base(size, className)}>
       <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
       <path d="m6 6 2 2M16 16l2 2M6 18l2-2M16 8l2-2" />
-    </svg>
-  )
-}
-
-export function Sword({ className = '', size = 16 }: IconProps) {
-  return (
-    <svg {...base(size, className)}>
-      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
-      <line x1="13" y1="19" x2="19" y2="13" />
-      <line x1="16" y1="16" x2="20" y2="20" />
-      <line x1="19" y1="21" x2="21" y2="19" />
     </svg>
   )
 }

@@ -8,6 +8,7 @@ import { getHeroTheme } from '@/lib/hero-theme'
 import { observeRoster } from '@/lib/stats-helpers'
 import { formatTime, formatPercent } from '@/lib/format'
 import type { PlayerStatsSummary, Role } from '@/types/overfast'
+import { heroHref, type ViewMode } from '@/lib/view-mode'
 
 type Filter = 'all' | Role
 
@@ -24,10 +25,12 @@ export function RosterTable({
   stats,
   heroRoles,
   heroNames,
+  view,
 }: {
   stats: PlayerStatsSummary
   heroRoles: Record<string, Role>
   heroNames: Record<string, string>
+  view: ViewMode
 }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [showAll, setShowAll] = useState(false)
@@ -85,7 +88,7 @@ export function RosterTable({
 
             return (
               <Link
-                href={`/hero/${key}`}
+                href={heroHref(key, view)}
                 key={key}
                 prefetch={false}
                 className="press-tactile grid grid-cols-[40px_1fr_70px_70px] md:grid-cols-[56px_1fr_100px_100px_100px_100px] gap-3 md:gap-4 px-3 md:px-5 py-4 items-center border-b border-border-default last:border-b-0 hover:bg-surface-card-active"

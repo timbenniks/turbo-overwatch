@@ -64,7 +64,10 @@ export function RoleRankStripe({
 }) {
   const pcRanks = summary.competitive?.pc
   const showBreakdown = view === 'all'
-  const hideRank = view === 'quickplay'
+  // Quickplay has no ranks, and in competitive the season banner above already
+  // shows them — repeating them here was the same fact twice on one screen.
+  // 'all' has no banner, so it keeps them.
+  const hideRank = view !== 'all'
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -88,14 +91,13 @@ export function RoleRankStripe({
               </span>
             </div>
 
+            {/* Quickplay has no ranks at all, so the card shows none — the old
+                "shown in comp / all view" placeholder was a dead 64px box. */}
             {!hideRank && <RankDisplay rank={rank} />}
-            {hideRank && (
-              <div className="h-16 flex items-center text-[11px] uppercase tracking-[0.2em] text-text-tertiary font-bold">
-                Ranks shown in comp / all view
-              </div>
-            )}
 
-            <div className="mt-5 pt-5 border-t border-border-default flex items-baseline justify-between gap-3">
+            <div
+              className={`${hideRank ? '' : 'mt-5 pt-5 border-t border-border-default'} flex items-baseline justify-between gap-3`}
+            >
               <div>
                 <div className="text-[10px] uppercase tracking-[0.2em] text-text-tertiary font-bold mb-1">
                   Win rate
