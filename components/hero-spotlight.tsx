@@ -1,8 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
-import { getHeroPortrait } from "@/lib/hero-assets";
+import { HeroBackdrop } from "@/components/hero-backdrop";
 import { getHeroTheme } from "@/lib/hero-theme";
-import { formatTime, formatPercent } from "@/lib/format";
+import { formatTime } from "@/lib/format";
 import { heroHref } from '@/lib/view-mode';
 import type { ViewMode } from "@/lib/view-mode";
 import type { PlayerStatsSummary, Role } from "@/types/overfast";
@@ -34,26 +33,17 @@ export function HeroSpotlight({
   const [key, heroStats] = top;
   const role = heroRoles[key];
   const theme = getHeroTheme(key, role);
-  const portrait = getHeroPortrait(key);
   const name = heroNames[key] ?? key.replace(/-/g, " ");
   const time = formatTime(heroStats.time_played);
 
   return (
     <section className="relative w-full h-[85vh] min-h-160 overflow-hidden">
-      {portrait && (
-        <div className="absolute inset-0 ken-burns">
-          <Image
-            src={portrait}
-            alt={name}
-            fill
-            priority
-            sizes="100vw"
-            quality={100}
-            loading="eager"
-            className="object-cover object-[70%_20%] md:object-[center_20%]"
-          />
-        </div>
-      )}
+      <HeroBackdrop
+        heroKey={key}
+        alt={name}
+        kenBurns
+        className="object-cover object-[70%_20%] md:object-[center_20%]"
+      />
       <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/70 via-black/30 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-surface-canvas via-surface-canvas/70 to-transparent" />
 

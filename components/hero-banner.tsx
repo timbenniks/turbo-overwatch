@@ -1,5 +1,4 @@
-import Image from 'next/image'
-import { getHeroPortrait } from '@/lib/hero-assets'
+import { HeroBackdrop } from '@/components/hero-backdrop'
 import type { Hero } from '@/types/overfast'
 
 export function HeroBanner({
@@ -9,22 +8,15 @@ export function HeroBanner({
   heroKey: string
   hero: Hero | null
 }) {
-  const portrait = getHeroPortrait(heroKey)
   const displayName = hero?.name ?? heroKey.replace(/-/g, ' ')
 
   return (
     <div className="relative w-full h-[70vh] min-h-130 overflow-hidden">
-      {portrait && (
-        <Image
-          src={portrait}
-          alt={displayName}
-          fill
-          priority
-          sizes="100vw"
-          quality={100}
-          className="object-cover object-[70%_15%] md:object-[center_15%]"
-        />
-      )}
+      <HeroBackdrop
+        heroKey={heroKey}
+        alt={displayName}
+        className="object-cover object-[70%_15%] md:object-[center_15%]"
+      />
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-surface-canvas via-surface-canvas/70 to-transparent" />
 
       <div className="relative h-full flex flex-col justify-end px-4 md:px-16 pb-10 md:pb-16 text-white max-w-400 mx-auto">

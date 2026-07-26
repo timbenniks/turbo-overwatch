@@ -30,22 +30,57 @@ export function normalisePlayerId(id: string): string {
   return id.replace('#', '-')
 }
 
-const PLAYER_DATA_LIFE = { stale: 60, revalidate: 3600, expire: 86400 }
+// Prefer staying warm for a few minutes so navigation / HMR don't all miss
+// at once and stampede the shared OverFast instance.
+const PLAYER_DATA_LIFE = { stale: 300, revalidate: 3600, expire: 86400 }
+
+// Live OverFast: 30 r/s but burst=5 and max 10 simultaneous connections.
+// Page loaders fan out many unique endpoints in Promise.all; gate them so
+// we stay under the burst instead of 429 → synchronized retry → 429 again.
+const MAX_IN_FLIGHT = 3
+let inFlight = 0
+const waitQueue: Array<() => void> = []
+
+function acquireSlot(): Promise<void> {
+  if (inFlight < MAX_IN_FLIGHT) {
+    inFlight++
+    return Promise.resolve()
+  }
+  return new Promise<void>((resolve) => {
+    waitQueue.push(() => {
+      inFlight++
+      resolve()
+    })
+  })
+}
+
+function releaseSlot() {
+  inFlight--
+  const next = waitQueue.shift()
+  if (next) next()
+}
 
 async function fetchWithRetry(url: string, attempts = 5): Promise<Response> {
   let last: Response | null = null
   for (let i = 0; i < attempts; i++) {
-    const res = await fetch(url)
+    await acquireSlot()
+    let res: Response
+    try {
+      res = await fetch(url)
+    } finally {
+      // Free the slot before backing off so other work can proceed during waits.
+      releaseSlot()
+    }
     if (res.ok || res.status === 404 || res.status === 403) return res
     last = res
     if (res.status !== 429 && res.status < 500) return res
-    // A production build prerenders with 8 parallel workers, which trips
-    // OverFast's rate limit in bursts. It tells us how long to wait — obey it
-    // rather than guessing, or the build fails on a transient 429.
     const retryAfter = Number(res.headers.get('retry-after'))
-    const delay = Number.isFinite(retryAfter) && retryAfter > 0
-      ? retryAfter * 1000 + 250
-      : 500 * Math.pow(2, i) + Math.random() * 250
+    const base =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : 500 * Math.pow(2, i)
+    // Jitter so parallel 429s don't all retry in lockstep.
+    const delay = base + 200 + Math.random() * 800
     await new Promise((r) => setTimeout(r, Math.min(delay, 10_000)))
   }
   return last!
@@ -176,6 +211,16 @@ export function selectStatsForView(
   return breakdown.combined
 }
 
+function timePlayedFromDeep(
+  deep: PlayerStatsDeep | null,
+  hero = 'all-heroes'
+): number {
+  const categories = deep?.[hero] ?? Object.values(deep ?? {})[0] ?? []
+  const game = categories.find((c) => c.category === 'game')
+  const value = game?.stats.find((s) => s.key === 'time_played')?.value
+  return typeof value === 'number' ? value : 0
+}
+
 export async function getPlayerStatsDeepForView(
   playerId: string,
   view: ViewMode,
@@ -184,15 +229,16 @@ export async function getPlayerStatsDeepForView(
   if (view !== 'all') {
     return getPlayerStatsDeep(playerId, { gamemode: view, ...opts })
   }
-  const [qpDeep, compDeep, qpSummary, compSummary] = await Promise.all([
+  // Two deep fetches only — time weights come from the deep payloads themselves
+  // so we don't also stampede the summary endpoints on every "all" view.
+  const [qpDeep, compDeep] = await Promise.all([
     getPlayerStatsDeep(playerId, { gamemode: 'quickplay', ...opts }),
     getPlayerStatsDeep(playerId, { gamemode: 'competitive', ...opts }),
-    getPlayerStatsSummary(playerId, { gamemode: 'quickplay', platform: opts.platform }),
-    getPlayerStatsSummary(playerId, { gamemode: 'competitive', platform: opts.platform }),
   ])
+  const hero = opts.hero ?? 'all-heroes'
   return mergeDeep(
-    { deep: qpDeep, timePlayed: qpSummary?.general.time_played ?? 0 },
-    { deep: compDeep, timePlayed: compSummary?.general.time_played ?? 0 }
+    { deep: qpDeep, timePlayed: timePlayedFromDeep(qpDeep, hero) },
+    { deep: compDeep, timePlayed: timePlayedFromDeep(compDeep, hero) }
   )
 }
 
