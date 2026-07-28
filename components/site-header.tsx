@@ -5,6 +5,7 @@ import { getPlayerSummary } from '@/lib/overfast'
 import { PLAYER_ID } from '@/lib/constants'
 import { ModeToggle } from '@/components/mode-toggle'
 import { HeaderShell } from '@/components/header-shell'
+import { HeroesNavLink } from '@/components/heroes-nav-link'
 
 export async function SiteHeader() {
   const summary = await getPlayerSummary(PLAYER_ID)
@@ -48,6 +49,9 @@ export async function SiteHeader() {
               <span className="hidden md:inline">Lvl {summary.endorsement.level}</span>
             </div>
           )}
+          <Suspense fallback={null}>
+            <HeroesNavLink />
+          </Suspense>
           <Suspense fallback={null}>
             <ModeToggle />
           </Suspense>

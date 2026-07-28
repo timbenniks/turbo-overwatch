@@ -8,9 +8,10 @@ import {
   getHeroList,
   getGlobalHeroStats,
 } from '@/lib/overfast'
+import { getHeroicEmote } from '@/lib/fandom'
 import { PLAYER_ID } from '@/lib/constants'
-import { parseViewMode } from '@/lib/view-mode'
-import type { ViewMode } from '@/lib/view-mode'
+import { parseStatsScope, parseViewMode } from '@/lib/view-mode'
+import type { StatsScope, ViewMode } from '@/lib/view-mode'
 import { getHeroTheme } from '@/lib/hero-theme'
 import { getHeroPortrait } from '@/lib/hero-assets'
 import { HeroBanner } from '@/components/hero-banner'
@@ -18,9 +19,12 @@ import { Breadcrumb } from '@/components/breadcrumb'
 import { HeroIdentityCard } from '@/components/hero-identity-card'
 import { HeroAbilities } from '@/components/hero-abilities'
 import { HeroPerks } from '@/components/hero-perks'
+import { HeroHeroicEmote } from '@/components/hero-heroic-emote'
 import { HeroStory } from '@/components/hero-story'
 import { HeroSpecificStats } from '@/components/hero-specific-stats'
 import { HeadlineStatTrio } from '@/components/headline-stat-trio'
+import { GlobalHeadlineStatTrio } from '@/components/global-headline-stat-trio'
+import { StatsScopeToggle } from '@/components/stats-scope-toggle'
 import { CombatSignature } from '@/components/combat-signature'
 import { RosterContextChart } from '@/components/roster-context-chart'
 import { SectionHeader } from '@/components/section-header'
@@ -63,7 +67,7 @@ export default function HeroDetailPage({
   searchParams,
 }: {
   params: Promise<{ key: string }>
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; stats?: string }>
 }) {
   return (
     <main className="w-full pb-32 md:pb-16">
@@ -79,15 +83,18 @@ async function HeroContent({
   searchParams,
 }: {
   params: Promise<{ key: string }>
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; stats?: string }>
 }) {
   const { key } = await params
-  const { mode } = await searchParams
+  const { mode, stats: statsParam } = await searchParams
   const view: ViewMode = parseViewMode(mode)
+  const scope: StatsScope = parseStatsScope(statsParam)
+  const showMine = scope === 'mine'
 
   // Global stats are reported per gamemode; 'all' has no global equivalent, so
   // it borrows quick play and the label says so.
   const globalMode = view === 'competitive' ? 'competitive' : 'quickplay'
+  const globalLabel = `PC ${globalMode === 'competitive' ? 'competitive' : 'quick play'} · Europe`
   const [breakdown, hero, heroList, globalStats] = await Promise.all([
     getPlayerStatsBreakdown(PLAYER_ID),
     getHero(key),
@@ -106,6 +113,7 @@ async function HeroContent({
   const heroStats = stats?.heroes[key] ?? null
   const generalStats = stats?.general ?? null
   const displayName = hero?.name ?? heroNames[key] ?? key.replace(/-/g, ' ')
+  const heroicEmote = await getHeroicEmote(displayName)
 
   return (
     // Mode accent for the hero page too, so navigating in from a mode keeps its
@@ -118,17 +126,31 @@ async function HeroContent({
         <Breadcrumb heroName={displayName} view={view} />
       </div>
 
-      <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto">
-        {heroStats ? (
-          <HeadlineStatTrio
-            heroKey={key}
-            heroStats={heroStats}
-            allHeroes={stats!.heroes}
-            globalWinrate={globalWinrate}
-            globalLabel={`vs global ${globalMode === 'competitive' ? 'comp' : 'QP'}`}
-          />
+      <div className="px-4 md:px-16 -mt-10 md:-mt-12 relative z-10 max-w-400 mx-auto space-y-4">
+        <div className="flex justify-end">
+          <Suspense fallback={null}>
+            <StatsScopeToggle current={scope} />
+          </Suspense>
+        </div>
+
+        {showMine ? (
+          heroStats ? (
+            <HeadlineStatTrio
+              heroKey={key}
+              heroStats={heroStats}
+              allHeroes={stats!.heroes}
+              globalWinrate={globalWinrate}
+              globalLabel={`vs global ${globalMode === 'competitive' ? 'comp' : 'QP'}`}
+            />
+          ) : (
+            <NeverPlayedNotice heroName={displayName} />
+          )
         ) : (
-          <NeverPlayedNotice heroName={displayName} />
+          <GlobalHeadlineStatTrio
+            heroKey={key}
+            globalStats={globalStats}
+            globalLabel={globalLabel}
+          />
         )}
       </div>
 
@@ -145,13 +167,19 @@ async function HeroContent({
           </Reveal>
         )}
 
+        {heroicEmote && (
+          <Reveal delay={60}>
+            <HeroHeroicEmote emote={heroicEmote} heroName={displayName} />
+          </Reveal>
+        )}
+
         {hero?.perks && (
           <Reveal delay={60}>
             <HeroPerks perks={hero.perks} />
           </Reveal>
         )}
 
-        {heroStats && generalStats && stats && (
+        {showMine && heroStats && generalStats && stats && (
           <>
             <Reveal as="section" delay={60}>
               <SectionHeader icon={<Crosshair size={22} />}>Combat signature</SectionHeader>
@@ -207,7 +235,7 @@ function NeverPlayedNotice({ heroName }: { heroName: string }) {
         You haven&apos;t played {heroName} yet.
       </p>
       <p className="text-text-secondary text-[13px] mt-3 uppercase tracking-widest font-bold">
-        Once you have some games on this hero, this page will show your performance.
+        Switch to Global for pick and win rates, or play some games to unlock your stats.
       </p>
     </div>
   )

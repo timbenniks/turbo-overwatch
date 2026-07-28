@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { homeHref, type ViewMode } from '@/lib/view-mode'
+import { homeHref, heroesHref, type ViewMode } from '@/lib/view-mode'
 
 /**
  * The only way back from a hero page other than the header logo. Keeps the
@@ -10,14 +10,20 @@ export function Breadcrumb({ heroName, view }: { heroName: string; view: ViewMod
   return (
     <nav
       aria-label="Breadcrumb"
-      className="absolute top-6 left-4 md:top-8 md:left-16 z-10 text-[11px] md:text-[12px] uppercase tracking-[0.2em] font-bold"
+      className="absolute top-6 left-4 md:top-8 md:left-16 z-10 text-[11px] md:text-[12px] uppercase tracking-[0.2em] font-bold flex flex-wrap gap-2"
     >
       <Link
         href={homeHref(view)}
         className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full press-tactile"
       >
         <span aria-hidden>←</span>
-        Roster
+        Home
+      </Link>
+      <Link
+        href={heroesHref(view)}
+        className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full press-tactile"
+      >
+        Heroes
       </Link>
       {/* Announced for screen readers; visually the hero name is already the
           page's giant heading right below. */}
