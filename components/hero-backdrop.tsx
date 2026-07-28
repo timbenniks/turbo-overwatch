@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
-import { getHeroPortrait } from '@/lib/hero-assets'
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { getHeroPortrait } from "@/lib/hero-assets";
 
 export function HeroBackdrop({
   heroKey,
@@ -10,51 +10,51 @@ export function HeroBackdrop({
   className,
   kenBurns = false,
 }: {
-  heroKey: string
-  alt: string
-  className: string
-  kenBurns?: boolean
+  heroKey: string;
+  alt: string;
+  className: string;
+  kenBurns?: boolean;
 }) {
-  const portrait = getHeroPortrait(heroKey)
+  const portrait = getHeroPortrait(heroKey);
   // Optimistically try the local webm; on 404 / decode error, fall back to the still.
-  const [useVideo, setUseVideo] = useState(true)
-  const [videoReady, setVideoReady] = useState(false)
-  const [showLoader, setShowLoader] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [useVideo, setUseVideo] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    setUseVideo(true)
-    setVideoReady(false)
-    setShowLoader(false)
+    setUseVideo(true);
+    setVideoReady(false);
+    setShowLoader(false);
     // Avoid a one-frame loader flash when the webm is already cached.
-    const t = window.setTimeout(() => setShowLoader(true), 180)
-    return () => window.clearTimeout(t)
-  }, [heroKey])
+    const t = window.setTimeout(() => setShowLoader(true), 180);
+    return () => window.clearTimeout(t);
+  }, [heroKey]);
 
   useEffect(() => {
-    if (!useVideo) return
-    const el = videoRef.current
-    if (!el) return
+    if (!useVideo) return;
+    const el = videoRef.current;
+    if (!el) return;
 
-    const fail = () => setUseVideo(false)
-    const ready = () => setVideoReady(true)
+    const fail = () => setUseVideo(false);
+    const ready = () => setVideoReady(true);
 
     // Fast 404s often fire `error` before React hydrates / attaches onError.
     if (el.error) {
-      fail()
-      return
+      fail();
+      return;
     }
     if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      ready()
+      ready();
     }
 
-    el.addEventListener('error', fail)
-    el.addEventListener('loadeddata', ready)
+    el.addEventListener("error", fail);
+    el.addEventListener("loadeddata", ready);
     return () => {
-      el.removeEventListener('error', fail)
-      el.removeEventListener('loadeddata', ready)
-    }
-  }, [heroKey, useVideo])
+      el.removeEventListener("error", fail);
+      el.removeEventListener("loadeddata", ready);
+    };
+  }, [heroKey, useVideo]);
 
   const image = portrait ? (
     <Image
@@ -66,7 +66,7 @@ export function HeroBackdrop({
       quality={100}
       className={className}
     />
-  ) : null
+  ) : null;
 
   return (
     <>
@@ -88,15 +88,20 @@ export function HeroBackdrop({
           playsInline
           onError={() => setUseVideo(false)}
           onLoadedData={() => setVideoReady(true)}
-          // Pin to the right edge so cinematic webms (e.g. Mauga) aren't cropped on that side
-          className={`absolute inset-y-0 right-0 h-full w-full object-cover object-right transition-opacity duration-500 ${
-            videoReady ? 'opacity-100' : 'opacity-0'
+          // Full-bleed box; on mobile bias object-position left so the hero
+          // (usually framed left in the webm) sits further right in view.
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 max-md:object-[85%_center] md:object-right ${
+            videoReady ? "opacity-100" : "opacity-0"
           }`}
           aria-label={alt}
         />
       ) : image ? (
-        kenBurns ? <div className="absolute inset-0 ken-burns">{image}</div> : image
+        kenBurns ? (
+          <div className="absolute inset-0 ken-burns">{image}</div>
+        ) : (
+          image
+        )
       ) : null}
     </>
-  )
+  );
 }
