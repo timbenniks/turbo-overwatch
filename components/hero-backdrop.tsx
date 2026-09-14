@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { getHeroPortrait } from "@/lib/hero-assets";
+import { getHeroPortrait, HERO_VIDEO_BASE } from "@/lib/hero-assets";
 
 export function HeroBackdrop({
   heroKey,
@@ -16,7 +16,7 @@ export function HeroBackdrop({
   kenBurns?: boolean;
 }) {
   const portrait = getHeroPortrait(heroKey);
-  // Optimistically try the local webm; on 404 / decode error, fall back to the still.
+  // Optimistically try the Blob webm; on 404 / decode error, fall back to the still.
   const [useVideo, setUseVideo] = useState(true);
   const [videoReady, setVideoReady] = useState(false);
   const [showLoader, setShowLoader] = useState(false);
@@ -81,7 +81,7 @@ export function HeroBackdrop({
         <video
           ref={videoRef}
           key={heroKey}
-          src={`/heros/${heroKey}.webm`}
+          src={`${HERO_VIDEO_BASE}/${heroKey}.webm`}
           autoPlay
           muted
           loop
